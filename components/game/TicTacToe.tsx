@@ -15,15 +15,14 @@ export function TicTacToe({ match, makeMove }: TicTacToeProps) {
 
   if (!user || !match) return null;
 
-  // Setup Data
+  // --- SETUP DATA ---
   const board = match.gameState?.board || Array(25).fill(null);
   const isMyTurn = match.turn === user.uid;
   const isPlayer1 = match.players[0] === user.uid;
   
-  // Tentukan simbol: Player 1 = X (Cyan), Player 2 = O (Rose)
   const mySymbol = isPlayer1 ? 'X' : 'O';
-  const opponentSymbol = isPlayer1 ? 'O' : 'X';
 
+  // --- LOGIC ---
   const handleCellClick = async (index: number) => {
     if (!isMyTurn) {
       toast.error("Bukan giliranmu!");
@@ -35,8 +34,8 @@ export function TicTacToe({ match, makeMove }: TicTacToeProps) {
     const newBoard = [...board];
     newBoard[index] = mySymbol;
 
-    // Pastikan logic ini sudah support 5x5 (biasanya win condition 4 atau 5 berderet)
-    const winner = checkTicTacToeWinner(newBoard);
+    // Pastikan utils checkTicTacToeWinner kamu support array length 25
+    const winner = checkTicTacToeWinner(newBoard); 
     const nextTurn = match.players.find(p => p !== user.uid) || match.turn;
 
     let updates: Partial<MatchData> = {
@@ -56,7 +55,7 @@ export function TicTacToe({ match, makeMove }: TicTacToeProps) {
     }
   };
 
-  // Helper untuk render Icon
+  // --- RENDER ICON ---
   const renderIcon = (symbol: string) => {
     if (symbol === 'X') {
       return (
@@ -76,7 +75,7 @@ export function TicTacToe({ match, makeMove }: TicTacToeProps) {
   };
 
   return (
-    <div className="max-w-lg mx-auto select-none">
+    <div className="max-w-md mx-auto select-none">
       
       {/* Header Status */}
       <div className="mb-6 flex items-center justify-between bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
@@ -101,24 +100,30 @@ export function TicTacToe({ match, makeMove }: TicTacToeProps) {
         )}
       </div>
 
-      {/* Game Board Container */}
-      <div className="bg-slate-200 p-4 rounded-3xl shadow-inner">
-        <div className="grid grid-cols-5 gap-2 sm:gap-3 aspect-square">
+      {/* --- GAME BOARD (FIXED UI) --- */}
+      <div className="bg-slate-200 p-4 rounded-3xl shadow-inner w-full aspect-square">
+        <div 
+          className="grid gap-2 w-full h-full"
+          style={{
+            // INI KUNCINYA: Memaksa layout menjadi 5x5 secara eksplisit
+            gridTemplateColumns: 'repeat(5, 1fr)',
+            gridTemplateRows: 'repeat(5, 1fr)'
+          }}
+        >
           {board.map((cell: string | null, index: number) => {
             const isTaken = cell !== null;
-            // Style logic: Jika taken, flat. Jika belum, timbul (shadow-b).
             return (
               <button
                 key={index}
                 onClick={() => handleCellClick(index)}
                 disabled={!isMyTurn || isTaken || match.status !== 'playing'}
                 className={`
-                  relative flex items-center justify-center rounded-xl transition-all duration-150
+                  relative w-full h-full flex items-center justify-center rounded-xl transition-all duration-150
                   ${isTaken 
-                    ? 'bg-slate-50 shadow-inner ring-1 ring-black/5' // Style saat terisi
+                    ? 'bg-slate-50 shadow-inner ring-1 ring-black/5' 
                     : isMyTurn && match.status === 'playing'
-                      ? 'bg-white shadow-[0_4px_0_rgb(203,213,225)] hover:-translate-y-0.5 hover:shadow-[0_6px_0_rgb(203,213,225)] active:translate-y-[4px] active:shadow-none' // Style tombol aktif 3D
-                      : 'bg-slate-100 opacity-80 cursor-not-allowed' // Style disabled
+                      ? 'bg-white shadow-[0_3px_0_rgb(203,213,225)] hover:-translate-y-0.5 hover:shadow-[0_4px_0_rgb(203,213,225)] active:translate-y-[2px] active:shadow-none' 
+                      : 'bg-slate-100 opacity-80 cursor-not-allowed'
                   }
                 `}
               >
@@ -129,23 +134,27 @@ export function TicTacToe({ match, makeMove }: TicTacToeProps) {
         </div>
       </div>
 
-      {/* Game End Status */}
-      {match.status === 'finished' && (
-        <div className="mt-8 text-center animate-bounce">
-          <div className="inline-block px-8 py-4 bg-white rounded-2xl shadow-lg border border-slate-100">
-            <p className="text-slate-400 font-bold text-sm uppercase mb-1">Hasil Pertandingan</p>
-            {match.winnerUid === user.uid ? (
-              <p className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600">
-                🎉 KAMU MENANG!
-              </p>
-            ) : match.winnerUid === null ? (
-              <p className="text-3xl font-black text-slate-600">SERI!</p>
-            ) : (
-              <p className="text-3xl font-black text-rose-500">YAH, KALAH 😢</p>
-            )}
-          </div>
-        </div>
-      )}
+      {/* Footer / Game End Status */}
+      <div className="mt-8 text-center min-h-[4rem]">
+        {match.status === 'finished' ? (
+           <div className="animate-bounce inline-block px-8 py-4 bg-white rounded-2xl shadow-lg border border-slate-100">
+             <p className="text-slate-400 font-bold text-xs uppercase mb-1">Hasil Pertandingan</p>
+             {match.winnerUid === user.uid ? (
+               <p className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600">
+                 🎉 KAMU MENANG!
+               </p>
+             ) : match.winnerUid === null ? (
+               <p className="text-2xl font-black text-slate-600">SERI!</p>
+             ) : (
+               <p className="text-2xl font-black text-rose-500">YAH, KALAH 😢</p>
+             )}
+           </div>
+        ) : (
+          <p className="text-slate-400 text-sm font-medium">
+             Target: 4 atau 5 simbol berurutan untuk menang
+          </p>
+        )}
+      </div>
 
       <style jsx global>{`
         @keyframes pop {
