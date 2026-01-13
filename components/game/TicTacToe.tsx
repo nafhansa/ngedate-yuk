@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { MatchData } from '@/services/db';
-import { checkTicTacToeWinner } from '@/utils/gameRules'; // Pastikan fungsi ini juga diupdate
+import { checkTicTacToeWinner } from '@/utils/gameRules';
 import toast from 'react-hot-toast';
 
 interface TicTacToeProps {
@@ -16,79 +15,148 @@ export function TicTacToe({ match, makeMove }: TicTacToeProps) {
 
   if (!user || !match) return null;
 
-  // Menggunakan 25 slot untuk grid 5x5
+  // Setup Data
   const board = match.gameState?.board || Array(25).fill(null);
   const isMyTurn = match.turn === user.uid;
-  const mySymbol = match.players[0] === user.uid ? 'X' : 'O';
+  const isPlayer1 = match.players[0] === user.uid;
+  
+  // Tentukan simbol: Player 1 = X (Cyan), Player 2 = O (Rose)
+  const mySymbol = isPlayer1 ? 'X' : 'O';
+  const opponentSymbol = isPlayer1 ? 'O' : 'X';
 
   const handleCellClick = async (index: number) => {
     if (!isMyTurn) {
-      toast.error("It's not your turn!");
+      toast.error("Bukan giliranmu!");
       return;
     }
-
-    if (board[index] !== null) {
-      toast.error('This cell is already taken!');
-      return;
-    }
-
-    if (match.status !== 'playing') {
-      toast.error('Game is not in progress');
-      return;
-    }
+    if (board[index] !== null) return;
+    if (match.status !== 'playing') return;
 
     const newBoard = [...board];
     newBoard[index] = mySymbol;
 
-    // Penting: Fungsi checkTicTacToeWinner harus mendukung grid 5x5
+    // Pastikan logic ini sudah support 5x5 (biasanya win condition 4 atau 5 berderet)
     const winner = checkTicTacToeWinner(newBoard);
     const nextTurn = match.players.find(p => p !== user.uid) || match.turn;
 
     let updates: Partial<MatchData> = {
-      gameState: {
-        ...match.gameState,
-        board: newBoard,
-      },
+      gameState: { ...match.gameState, board: newBoard },
       turn: winner ? match.turn : nextTurn,
     };
 
     if (winner) {
       updates.status = 'finished';
-      if (winner === 'draw') {
-        updates.winnerUid = null;
-      } else {
-        updates.winnerUid = winner === mySymbol ? user.uid : (match.players.find(p => p !== user.uid) || null);
-      }
+      updates.winnerUid = winner === 'draw' ? null : (winner === mySymbol ? user.uid : (match.players.find(p => p !== user.uid) || null));
     }
 
     try {
       await makeMove(updates);
     } catch (error) {
-      toast.error('Failed to make move');
+      toast.error('Gagal menyimpan langkah');
     }
   };
 
+  // Helper untuk render Icon
+  const renderIcon = (symbol: string) => {
+    if (symbol === 'X') {
+      return (
+        <svg viewBox="0 0 24 24" fill="none" className="w-8 h-8 sm:w-10 sm:h-10 text-cyan-500 drop-shadow-sm animate-pop">
+          <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      );
+    }
+    if (symbol === 'O') {
+      return (
+        <svg viewBox="0 0 24 24" fill="none" className="w-8 h-8 sm:w-10 sm:h-10 text-rose-500 drop-shadow-sm animate-pop">
+          <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="4" strokeLinecap="round"/>
+        </svg>
+      );
+    }
+    return null;
+  };
+
   return (
-    <div className="max-w-xl mx-auto"> {/* Lebar ditambah sedikit untuk 5 kolom */}
-      <div className="grid grid-cols-5 gap-2 aspect-square"> {/* grid-cols-5 adalah kunci */}
-        {board.map((cell: string | null, index: number) => (
-          <button
-            key={index}
-            onClick={() => handleCellClick(index)}
-            disabled={!isMyTurn || cell !== null || match.status !== 'playing'}
-            className={`
-              aspect-square bg-white rounded-lg shadow-sm text-2xl font-bold
-              transition-all hover:scale-105 active:scale-95
-              ${cell === 'X' ? 'text-blue-500' : cell === 'O' ? 'text-red-500' : 'text-slate-300'}
-              ${!isMyTurn || cell !== null || match.status !== 'playing' 
-                ? 'cursor-not-allowed opacity-50' 
-                : 'cursor-pointer hover:shadow-md hover:bg-blue-50'}
-            `}
-          >
-            {cell || ''}
-          </button>
-        ))}
+    <div className="max-w-lg mx-auto select-none">
+      
+      {/* Header Status */}
+      <div className="mb-6 flex items-center justify-between bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+        <div className="flex items-center gap-3">
+          <div className={`p-2 rounded-lg ${isPlayer1 ? 'bg-cyan-100 text-cyan-600' : 'bg-rose-100 text-rose-600'}`}>
+            <span className="font-black text-xl">{mySymbol}</span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Kamu</span>
+            <span className="font-bold text-slate-700">Player {isPlayer1 ? '1' : '2'}</span>
+          </div>
+        </div>
+
+        {match.status === 'playing' && (
+          <div className={`px-4 py-1.5 rounded-full text-sm font-bold transition-colors ${
+            isMyTurn 
+              ? 'bg-blue-100 text-blue-700 ring-2 ring-blue-200' 
+              : 'bg-slate-100 text-slate-400'
+          }`}>
+            {isMyTurn ? 'Giliranmu' : 'Menunggu...'}
+          </div>
+        )}
       </div>
+
+      {/* Game Board Container */}
+      <div className="bg-slate-200 p-4 rounded-3xl shadow-inner">
+        <div className="grid grid-cols-5 gap-2 sm:gap-3 aspect-square">
+          {board.map((cell: string | null, index: number) => {
+            const isTaken = cell !== null;
+            // Style logic: Jika taken, flat. Jika belum, timbul (shadow-b).
+            return (
+              <button
+                key={index}
+                onClick={() => handleCellClick(index)}
+                disabled={!isMyTurn || isTaken || match.status !== 'playing'}
+                className={`
+                  relative flex items-center justify-center rounded-xl transition-all duration-150
+                  ${isTaken 
+                    ? 'bg-slate-50 shadow-inner ring-1 ring-black/5' // Style saat terisi
+                    : isMyTurn && match.status === 'playing'
+                      ? 'bg-white shadow-[0_4px_0_rgb(203,213,225)] hover:-translate-y-0.5 hover:shadow-[0_6px_0_rgb(203,213,225)] active:translate-y-[4px] active:shadow-none' // Style tombol aktif 3D
+                      : 'bg-slate-100 opacity-80 cursor-not-allowed' // Style disabled
+                  }
+                `}
+              >
+                {cell && renderIcon(cell)}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Game End Status */}
+      {match.status === 'finished' && (
+        <div className="mt-8 text-center animate-bounce">
+          <div className="inline-block px-8 py-4 bg-white rounded-2xl shadow-lg border border-slate-100">
+            <p className="text-slate-400 font-bold text-sm uppercase mb-1">Hasil Pertandingan</p>
+            {match.winnerUid === user.uid ? (
+              <p className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600">
+                🎉 KAMU MENANG!
+              </p>
+            ) : match.winnerUid === null ? (
+              <p className="text-3xl font-black text-slate-600">SERI!</p>
+            ) : (
+              <p className="text-3xl font-black text-rose-500">YAH, KALAH 😢</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      <style jsx global>{`
+        @keyframes pop {
+          0% { transform: scale(0.5); opacity: 0; }
+          50% { transform: scale(1.2); }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pop {
+          animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+      `}</style>
     </div>
   );
 }
