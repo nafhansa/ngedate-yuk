@@ -56,7 +56,7 @@ export default function GameRoomPage({ params }: { params: { gameType: string } 
         console.error('Error starting game:', err);
       });
     }
-  }, [match?.status, match?.players?.length, match?.matchId]);
+  }, [match]);
 
   const renderGame = () => {
     if (!match || !user) return null;

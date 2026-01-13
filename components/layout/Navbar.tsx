@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import { signOut } from '@/services/auth';
 import { LogOut, User, Home } from 'lucide-react';
@@ -37,9 +38,11 @@ export function Navbar() {
 
           <div className="flex items-center space-x-4">
             {userData?.photoURL ? (
-              <img
+              <Image
                 src={userData.photoURL}
                 alt={userData.displayName}
+                width={40}
+                height={40}
                 className="w-10 h-10 rounded-full"
               />
             ) : (

@@ -51,6 +51,7 @@ export interface MatchData {
   createdAt: Timestamp;
   lastMoveAt: Timestamp;
   gameState: any;
+  roomCode?: string;
 }
 
 export const getUser = async (uid: string): Promise<UserData | null> => {
@@ -308,6 +309,94 @@ export const declinePartnerRequest = async (currentUid: string, requestId: strin
   }
 };
 
+// Generate a random 6-character room code
+const generateRoomCode = (): string => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let result = '';
+  for (let i = 0; i < 6; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+};
+
+// Create a room with a room code (player 1 creates room)
+export const createRoomWithCode = async (
+  gameType: GameType,
+  hostUid: string
+): Promise<{ matchId: string; roomCode: string }> => {
+  try {
+    const matchRef = doc(collection(db, 'matches'));
+    const matchId = matchRef.id;
+    const roomCode = generateRoomCode();
+
+    const initialGameState = getInitialGameState(gameType);
+
+    await setDoc(matchRef, {
+      matchId,
+      gameType,
+      status: 'waiting' as MatchStatus,
+      players: [hostUid],
+      turn: hostUid,
+      winnerUid: null,
+      createdAt: serverTimestamp(),
+      lastMoveAt: serverTimestamp(),
+      gameState: initialGameState,
+      roomCode,
+    });
+
+    return { matchId, roomCode };
+  } catch (error) {
+    console.error('Error creating room:', error);
+    throw error;
+  }
+};
+
+// Join a room by room code (player 2 joins)
+export const joinRoomByCode = async (
+  roomCode: string,
+  gameType: GameType,
+  playerUid: string
+): Promise<string> => {
+  try {
+    // Find match with this room code, game type, and status 'waiting'
+    const q = query(
+      collection(db, 'matches'),
+      where('roomCode', '==', roomCode.toUpperCase()),
+      where('gameType', '==', gameType),
+      where('status', '==', 'waiting')
+    );
+    const querySnapshot = await getDocs(q);
+
+    if (querySnapshot.empty) {
+      throw new Error('Room not found or already started');
+    }
+
+    const matchDoc = querySnapshot.docs[0];
+    const matchData = matchDoc.data() as MatchData;
+
+    // Check if player is already in the room
+    if (matchData.players.includes(playerUid)) {
+      return matchData.matchId;
+    }
+
+    // Check if room is full
+    if (matchData.players.length >= 2) {
+      throw new Error('Room is full');
+    }
+
+    // Add player to the room
+    await updateDoc(matchDoc.ref, {
+      players: [...matchData.players, playerUid],
+    });
+
+    return matchData.matchId;
+  } catch (error) {
+    console.error('Error joining room:', error);
+    throw error;
+  }
+};
+
+// Legacy function - keep for backward compatibility but mark as deprecated
 export const createMatch = async (
   gameType: GameType,
   hostUid: string,
@@ -316,6 +405,7 @@ export const createMatch = async (
   try {
     const matchRef = doc(collection(db, 'matches'));
     const matchId = matchRef.id;
+    const roomCode = generateRoomCode();
 
     const initialGameState = getInitialGameState(gameType);
 
@@ -329,6 +419,7 @@ export const createMatch = async (
       createdAt: serverTimestamp(),
       lastMoveAt: serverTimestamp(),
       gameState: initialGameState,
+      roomCode,
     });
 
     return matchId;

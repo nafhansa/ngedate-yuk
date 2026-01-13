@@ -1,14 +1,17 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/protected/ProtectedRoute';
 import { Navbar } from '@/components/layout/Navbar';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Gamepad2, Grid3x3, Layers, Anchor, Boxes } from 'lucide-react';
+import { Input } from '@/components/ui/Input';
+import { Modal } from '@/components/ui/Modal';
+import { Grid3x3, Layers, Anchor, Boxes, Copy, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { createMatch } from '@/services/db';
+import { createRoomWithCode, joinRoomByCode } from '@/services/db';
 
 const games = [
   {
@@ -44,29 +47,75 @@ const games = [
 export default function DashboardPage() {
   const { user, userData } = useAuth();
   const router = useRouter();
+  const [selectedGame, setSelectedGame] = useState<string | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showJoinModal, setShowJoinModal] = useState(false);
+  const [roomCode, setRoomCode] = useState('');
+  const [createdRoomCode, setCreatedRoomCode] = useState('');
+  const [createdMatchId, setCreatedMatchId] = useState('');
+  const [copied, setCopied] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleStartGame = async (gameType: string) => {
-    if (!user || !userData) {
+  const handleCreateRoom = async (gameType: string) => {
+    if (!user) {
       toast.error('Please sign in to play');
       return;
     }
 
-    if (!userData.partnerUid) {
-      toast.error('Please connect with a partner first in your profile');
-      router.push('/profile');
+    setSelectedGame(gameType);
+    setLoading(true);
+
+    try {
+      const { matchId, roomCode: code } = await createRoomWithCode(
+        gameType as any,
+        user.uid
+      );
+      setCreatedRoomCode(code);
+      setCreatedMatchId(matchId);
+      setShowCreateModal(true);
+      setLoading(false);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to create room');
+      setLoading(false);
+    }
+  };
+
+  const handleJoinRoom = async () => {
+    if (!user) {
+      toast.error('Please sign in to play');
       return;
     }
 
-    try {
-      const matchId = await createMatch(
-        gameType as any,
-        user.uid,
-        userData.partnerUid
-      );
-      router.push(`/game/${gameType}?matchId=${matchId}`);
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to create game');
+    if (!roomCode.trim()) {
+      toast.error('Please enter a room code');
+      return;
     }
+
+    if (!selectedGame) {
+      toast.error('Please select a game first');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const matchId = await joinRoomByCode(
+        roomCode.trim().toUpperCase(),
+        selectedGame as any,
+        user.uid
+      );
+      router.push(`/game/${selectedGame}?matchId=${matchId}`);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to join room');
+      setLoading(false);
+    }
+  };
+
+  const copyRoomCode = () => {
+    navigator.clipboard.writeText(createdRoomCode);
+    setCopied(true);
+    toast.success('Room code copied!');
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -77,9 +126,7 @@ export default function DashboardPage() {
           <div className="text-center mb-8">
             <h1 className="text-4xl font-bold text-slate-800 mb-2">Choose a Game</h1>
             <p className="text-slate-600">
-              {userData?.partnerUid
-                ? 'Select a game to play with your partner'
-                : 'Connect with a partner in your profile to start playing'}
+              Create a room or join an existing room to play with your partner
             </p>
           </div>
 
@@ -98,20 +145,106 @@ export default function DashboardPage() {
                     {game.name}
                   </h3>
                   <p className="text-sm text-slate-600 mb-4">{game.description}</p>
-                  <Button
-                    variant="primary"
-                    size="md"
-                    onClick={() => handleStartGame(game.id)}
-                    disabled={!userData?.partnerUid}
-                    className="w-full"
-                  >
-                    Play
-                  </Button>
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      variant="primary"
+                      size="md"
+                      onClick={() => handleCreateRoom(game.id)}
+                      disabled={loading}
+                      className="w-full"
+                    >
+                      Create Room
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="md"
+                      onClick={() => {
+                        setSelectedGame(game.id);
+                        setShowJoinModal(true);
+                      }}
+                      disabled={loading}
+                      className="w-full"
+                    >
+                      Join Room
+                    </Button>
+                  </div>
                 </Card>
               );
             })}
           </div>
         </div>
+
+        {/* Create Room Modal */}
+        <Modal
+          isOpen={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+          title="Room Created!"
+        >
+          <div className="text-center">
+            <p className="text-slate-600 mb-4">
+              Share this room code with your partner:
+            </p>
+            <div className="bg-rose-50 border-2 border-rose-500 rounded-lg p-4 mb-4">
+              <div className="flex items-center justify-center gap-2">
+                <span className="text-3xl font-bold text-rose-600 tracking-wider">
+                  {createdRoomCode}
+                </span>
+                <button
+                  onClick={copyRoomCode}
+                  className="p-2 hover:bg-rose-100 rounded-lg transition-colors"
+                >
+                  {copied ? (
+                    <Check className="w-5 h-5 text-green-600" />
+                  ) : (
+                    <Copy className="w-5 h-5 text-rose-600" />
+                  )}
+                </button>
+              </div>
+            </div>
+            <Button
+              variant="primary"
+              onClick={() => {
+                if (selectedGame && createdMatchId) {
+                  router.push(`/game/${selectedGame}?matchId=${createdMatchId}`);
+                }
+              }}
+            >
+              Go to Game Now
+            </Button>
+          </div>
+        </Modal>
+
+        {/* Join Room Modal */}
+        <Modal
+          isOpen={showJoinModal}
+          onClose={() => {
+            setShowJoinModal(false);
+            setRoomCode('');
+          }}
+          title="Join Room"
+        >
+          <div>
+            <p className="text-slate-600 mb-4">
+              Enter the room code from your partner:
+            </p>
+            <Input
+              type="text"
+              placeholder="Enter room code (e.g., ABC123)"
+              value={roomCode}
+              onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+              className="mb-4 text-center text-2xl font-bold tracking-wider"
+              maxLength={6}
+            />
+            <Button
+              variant="primary"
+              onClick={handleJoinRoom}
+              disabled={loading || !roomCode.trim()}
+              className="w-full"
+            >
+              {loading ? 'Joining...' : 'Join Room'}
+            </Button>
+          </div>
+        </Modal>
       </div>
     </ProtectedRoute>
   );

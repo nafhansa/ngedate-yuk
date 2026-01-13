@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/protected/ProtectedRoute';
 import { Navbar } from '@/components/layout/Navbar';
@@ -24,15 +25,7 @@ export default function ProfilePage() {
   const [processingRequest, setProcessingRequest] = useState<Record<string, boolean>>({});
   const [loadingRequests, setLoadingRequests] = useState(true);
 
-  useEffect(() => {
-    if (userData?.partnerUid) {
-      loadPartnerData();
-    }
-    loadIncomingRequests();
-    loadMatchHistory();
-  }, [userData?.partnerUid, user?.uid]);
-
-  const loadPartnerData = async () => {
+  const loadPartnerData = useCallback(async () => {
     if (!userData?.partnerUid) return;
     try {
       const data = await getUser(userData.partnerUid);
@@ -40,9 +33,9 @@ export default function ProfilePage() {
     } catch (error) {
       console.error('Error loading partner data:', error);
     }
-  };
+  }, [userData?.partnerUid]);
 
-  const loadIncomingRequests = async () => {
+  const loadIncomingRequests = useCallback(async () => {
     if (!user?.uid) return;
     try {
       setLoadingRequests(true);
@@ -63,9 +56,9 @@ export default function ProfilePage() {
     } finally {
       setLoadingRequests(false);
     }
-  };
+  }, [user?.uid]);
 
-  const loadMatchHistory = async () => {
+  const loadMatchHistory = useCallback(async () => {
     if (!user?.uid) return;
     try {
       const history = await getMatchHistory(user.uid);
@@ -79,7 +72,15 @@ export default function ProfilePage() {
     } finally {
       setHistoryLoading(false);
     }
-  };
+  }, [user?.uid]);
+
+  useEffect(() => {
+    if (userData?.partnerUid) {
+      loadPartnerData();
+    }
+    loadIncomingRequests();
+    loadMatchHistory();
+  }, [userData?.partnerUid, user?.uid, loadPartnerData, loadIncomingRequests, loadMatchHistory]);
 
   const handleRequestPartner = async () => {
     if (!partnerEmail.trim()) {
@@ -192,9 +193,11 @@ export default function ProfilePage() {
               <h2 className="text-xl font-semibold text-slate-800 mb-4">Your Profile</h2>
               <div className="flex items-center space-x-4 mb-4">
                 {userData.photoURL ? (
-                  <img
+                  <Image
                     src={userData.photoURL}
                     alt={userData.displayName}
+                    width={64}
+                    height={64}
                     className="w-16 h-16 rounded-full"
                   />
                 ) : (
@@ -230,9 +233,11 @@ export default function ProfilePage() {
                 <div>
                   <div className="flex items-center space-x-4 mb-4">
                     {partnerData.photoURL ? (
-                      <img
+                      <Image
                         src={partnerData.photoURL}
                         alt={partnerData.displayName}
+                        width={64}
+                        height={64}
                         className="w-16 h-16 rounded-full"
                       />
                     ) : (
@@ -269,9 +274,11 @@ export default function ProfilePage() {
                         <div key={request.requestId} className="bg-blue-50 border-2 border-blue-200 p-4 rounded-lg">
                           <div className="flex items-center space-x-3 mb-4">
                             {senderData.photoURL ? (
-                              <img
+                              <Image
                                 src={senderData.photoURL}
                                 alt={senderData.displayName}
+                                width={48}
+                                height={48}
                                 className="w-12 h-12 rounded-full"
                               />
                             ) : (
