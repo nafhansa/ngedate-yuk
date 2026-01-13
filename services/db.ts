@@ -319,6 +319,63 @@ export const declinePartnerRequest = async (currentUid: string, requestId: strin
   }
 };
 
+// Remove partner relationship
+export const removePartner = async (currentUid: string): Promise<void> => {
+  try {
+    const currentUser = await getUser(currentUid);
+    if (!currentUser) {
+      throw new Error('User not found');
+    }
+
+    if (!currentUser.partnerUid) {
+      throw new Error('You do not have a partner');
+    }
+
+    const partnerUid = currentUser.partnerUid;
+
+    // Update current user - remove partner (own document, allowed)
+    await updateDoc(doc(getDb(), 'users', currentUid), {
+      partnerUid: null,
+    });
+
+    // Update partner user - remove partner (other user's document, needs special rule)
+    try {
+      await updateDoc(doc(getDb(), 'users', partnerUid), {
+        partnerUid: null,
+      });
+    } catch (error: any) {
+      // If update fails, rollback current user's partnerUid
+      await updateDoc(doc(getDb(), 'users', currentUid), {
+        partnerUid: partnerUid,
+      });
+      throw new Error(`Failed to remove partner: ${error.message}`);
+    }
+  } catch (error) {
+    console.error('Error removing partner:', error);
+    throw error;
+  }
+};
+
+// Update user display name
+export const updateDisplayName = async (uid: string, displayName: string): Promise<void> => {
+  try {
+    if (!displayName.trim()) {
+      throw new Error('Display name cannot be empty');
+    }
+
+    if (displayName.trim().length > 50) {
+      throw new Error('Display name must be 50 characters or less');
+    }
+
+    await updateDoc(doc(getDb(), 'users', uid), {
+      displayName: displayName.trim(),
+    });
+  } catch (error) {
+    console.error('Error updating display name:', error);
+    throw error;
+  }
+};
+
 // Generate a random 6-character room code
 const generateRoomCode = (): string => {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';

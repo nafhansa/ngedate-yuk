@@ -7,15 +7,15 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { requestPartner, approvePartnerRequest, declinePartnerRequest, getMatchHistory, getUser, getIncomingRequests, PartnerRequest, MatchData } from '@/services/db';
+import { requestPartner, approvePartnerRequest, declinePartnerRequest, getMatchHistory, getUser, getIncomingRequests, removePartner, updateDisplayName, PartnerRequest, MatchData } from '@/services/db';
 import { formatDate, getGameDisplayName } from '@/utils/helpers';
 import toast from 'react-hot-toast';
-import { UserPlus, Trophy, TrendingUp, TrendingDown, Minus, Check, X, Loader2 } from 'lucide-react';
+import { UserPlus, Trophy, TrendingUp, TrendingDown, Minus, Check, X, Loader2, UserX, Edit2, Save } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
 export default function ProfilePage() {
-  const { user, userData } = useAuth();
+  const { user, userData, refreshUserData } = useAuth();
   const [partnerEmail, setPartnerEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [partnerData, setPartnerData] = useState<any>(null);
@@ -25,6 +25,10 @@ export default function ProfilePage() {
   const [historyLoading, setHistoryLoading] = useState(true);
   const [processingRequest, setProcessingRequest] = useState<Record<string, boolean>>({});
   const [loadingRequests, setLoadingRequests] = useState(true);
+  const [removingPartner, setRemovingPartner] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [newDisplayName, setNewDisplayName] = useState('');
+  const [savingName, setSavingName] = useState(false);
 
   useEffect(() => {
     if (userData?.partnerUid) {
@@ -171,6 +175,66 @@ export default function ProfilePage() {
     }
   };
 
+  const handleRemovePartner = async () => {
+    if (!confirm('Are you sure you want to remove your partner? This action cannot be undone.')) {
+      return;
+    }
+
+    setRemovingPartner(true);
+    try {
+      await removePartner(user!.uid);
+      toast.success('Partner removed successfully');
+      
+      // Clear partner data from UI
+      setPartnerData(null);
+      
+      // Refresh user data to get updated partnerUid
+      await refreshUserData();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to remove partner');
+    } finally {
+      setRemovingPartner(false);
+    }
+  };
+
+  const handleStartEditName = () => {
+    setNewDisplayName(userData?.displayName || '');
+    setEditingName(true);
+  };
+
+  const handleCancelEditName = () => {
+    setEditingName(false);
+    setNewDisplayName('');
+  };
+
+  const handleSaveDisplayName = async () => {
+    if (!newDisplayName.trim()) {
+      toast.error('Display name cannot be empty');
+      return;
+    }
+
+    if (newDisplayName.trim() === userData?.displayName) {
+      setEditingName(false);
+      return;
+    }
+
+    setSavingName(true);
+    try {
+      await updateDisplayName(user!.uid, newDisplayName.trim());
+      toast.success('Display name updated successfully');
+      
+      // Refresh user data to get updated display name
+      await refreshUserData();
+      
+      setEditingName(false);
+      setNewDisplayName('');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update display name');
+    } finally {
+      setSavingName(false);
+    }
+  };
+
   if (!user || !userData) {
     return (
       <ProtectedRoute>
@@ -204,8 +268,51 @@ export default function ProfilePage() {
                     {userData.displayName?.[0] || 'U'}
                   </div>
                 )}
-                <div>
-                  <p className="font-semibold text-slate-800">{userData.displayName}</p>
+                <div className="flex-1">
+                  {editingName ? (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="text"
+                        value={newDisplayName}
+                        onChange={(e) => setNewDisplayName(e.target.value)}
+                        className="flex-1"
+                        placeholder="Display name"
+                        maxLength={50}
+                        disabled={savingName}
+                      />
+                      <Button
+                        variant="primary"
+                        onClick={handleSaveDisplayName}
+                        disabled={savingName}
+                        className="px-3"
+                      >
+                        {savingName ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Save className="w-4 h-4" />
+                        )}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={handleCancelEditName}
+                        disabled={savingName}
+                        className="px-3"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-slate-800">{userData.displayName}</p>
+                      <button
+                        onClick={handleStartEditName}
+                        className="text-rose-500 hover:text-rose-600 transition-colors"
+                        title="Edit display name"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
                   <p className="text-sm text-slate-600">{userData.email}</p>
                 </div>
               </div>
@@ -242,16 +349,34 @@ export default function ProfilePage() {
                         {partnerData.displayName?.[0] || 'P'}
                       </div>
                     )}
-                    <div>
+                    <div className="flex-1">
                       <p className="font-semibold text-slate-800">{partnerData.displayName}</p>
                       <p className="text-sm text-slate-600">{partnerData.email}</p>
                     </div>
                   </div>
-                  <div className="bg-rose-50 p-3 rounded-lg">
+                  <div className="bg-rose-50 p-3 rounded-lg mb-4">
                     <p className="text-sm text-rose-700">
                       ✓ Connected with {partnerData.displayName}
                     </p>
                   </div>
+                  <Button
+                    variant="outline"
+                    onClick={handleRemovePartner}
+                    disabled={removingPartner}
+                    className="w-full"
+                  >
+                    {removingPartner ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 inline animate-spin" />
+                        Removing...
+                      </>
+                    ) : (
+                      <>
+                        <UserX className="w-4 h-4 mr-2 inline" />
+                        Remove Partner
+                      </>
+                    )}
+                  </Button>
                 </div>
               ) : incomingRequests.length > 0 ? (
                 <div className="space-y-3">

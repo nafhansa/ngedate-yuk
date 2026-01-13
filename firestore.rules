@@ -15,6 +15,12 @@ service cloud.firestore {
         request.auth.uid != userId &&
         request.resource.data.partnerUid == request.auth.uid &&
         resource.data.partnerUid == null;
+      
+      // Allow removing partner (setting partnerUid to null) if current user is the partner
+      allow update: if request.auth != null && 
+        request.auth.uid != userId &&
+        request.resource.data.partnerUid == null &&
+        resource.data.partnerUid == request.auth.uid;
     }
 
     // PARTNER REQUESTS: Users can create requests, read their own requests, and update requests sent to them

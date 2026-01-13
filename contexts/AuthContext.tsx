@@ -9,12 +9,14 @@ interface AuthContextType {
   user: FirebaseUser | null;
   userData: UserData | null;
   loading: boolean;
+  refreshUserData: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   userData: null,
   loading: true,
+  refreshUserData: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -23,6 +25,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const loadUserData = async (firebaseUser: FirebaseUser) => {
+    // Get or create user data
+    let data = await getUser(firebaseUser.uid);
+    if (!data) {
+      await createUser(firebaseUser);
+      data = await getUser(firebaseUser.uid);
+    } else {
+      await updateUserLastLogin(firebaseUser.uid);
+    }
+    return data;
+  };
+
+  const refreshUserData = async () => {
+    if (user) {
+      const data = await getUser(user.uid);
+      setUserData(data);
+    }
+  };
 
   useEffect(() => {
     // Get auth instance (will initialize if needed)
@@ -37,16 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = onAuthStateChanged(authInstance, async (firebaseUser) => {
       if (firebaseUser) {
         setUser(firebaseUser);
-        
-        // Get or create user data
-        let data = await getUser(firebaseUser.uid);
-        if (!data) {
-          await createUser(firebaseUser);
-          data = await getUser(firebaseUser.uid);
-        } else {
-          await updateUserLastLogin(firebaseUser.uid);
-        }
-        
+        const data = await loadUserData(firebaseUser);
         setUserData(data);
       } else {
         setUser(null);
@@ -59,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, userData, loading }}>
+    <AuthContext.Provider value={{ user, userData, loading, refreshUserData }}>
       {children}
     </AuthContext.Provider>
   );
