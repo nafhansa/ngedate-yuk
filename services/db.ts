@@ -245,18 +245,18 @@ export const approvePartnerRequest = async (currentUid: string, requestId: strin
     });
 
     // Update current user - set partner (own document, allowed)
-    await updateDoc(doc(db, 'users', currentUid), {
+    await updateDoc(doc(getDb(), 'users', currentUid), {
       partnerUid: requesterUid,
     });
 
     // Update requester user - set partner (other user's document, needs special rule)
     try {
-      await updateDoc(doc(db, 'users', requesterUid), {
+      await updateDoc(doc(getDb(), 'users', requesterUid), {
         partnerUid: currentUid,
       });
     } catch (error: any) {
       // If update fails, rollback current user's partnerUid
-      await updateDoc(doc(db, 'users', currentUid), {
+      await updateDoc(doc(getDb(), 'users', currentUid), {
         partnerUid: null,
       });
       await updateDoc(doc(getDb(), 'partnerRequests', requestId), {
