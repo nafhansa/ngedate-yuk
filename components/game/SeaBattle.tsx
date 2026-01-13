@@ -353,6 +353,7 @@ export function SeaBattle({ match, makeMove }: SeaBattleProps) {
               disabled={!isRadar || !!shot || match.turn !== myUid}
               className={`
                 relative z-10 aspect-square flex items-center justify-center
+                ${isRadar ? 'border-cyan-500/20' : 'border-blue-500/20'}
                 ${isHit ? 'bg-red-500/90' : isMiss ? 'bg-white/10' : occupied ? 'bg-slate-500' : 'bg-transparent'}
                 ${isRadar && !shot && match.turn === myUid ? 'hover:bg-cyan-700 cursor-crosshair' : ''}
               `}
