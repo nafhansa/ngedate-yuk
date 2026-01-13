@@ -24,6 +24,7 @@ export default function ProfilePage() {
   const [historyLoading, setHistoryLoading] = useState(true);
   const [processingRequest, setProcessingRequest] = useState<Record<string, boolean>>({});
   const [loadingRequests, setLoadingRequests] = useState(true);
+  const [opponentData, setOpponentData] = useState<Record<string, any>>({});
 
   const loadPartnerData = useCallback(async () => {
     if (!userData?.partnerUid) return;
@@ -62,11 +63,29 @@ export default function ProfilePage() {
     if (!user?.uid) return;
     try {
       const history = await getMatchHistory(user.uid);
-      setMatchHistory(history.sort((a, b) => {
+      const sortedHistory = history.sort((a, b) => {
         const aTime = a.lastMoveAt?.toMillis() || 0;
         const bTime = b.lastMoveAt?.toMillis() || 0;
         return bTime - aTime;
-      }));
+      });
+      setMatchHistory(sortedHistory);
+
+      // Load opponent data for each match
+      const opponents: Record<string, any> = {};
+      for (const match of sortedHistory) {
+        const opponentUid = match.players.find(uid => uid !== user.uid);
+        if (opponentUid) {
+          try {
+            const opponent = await getUser(opponentUid);
+            if (opponent) {
+              opponents[match.matchId] = opponent;
+            }
+          } catch (error) {
+            console.error('Error loading opponent data:', error);
+          }
+        }
+      }
+      setOpponentData(opponents);
     } catch (error) {
       console.error('Error loading match history:', error);
     } finally {
@@ -389,20 +408,26 @@ export default function ProfilePage() {
                 {matchHistory.map((match) => {
                   const isWinner = match.winnerUid === user.uid;
                   const isDraw = match.winnerUid === null;
+                  const opponent = opponentData[match.matchId];
+                  const opponentName = opponent?.displayName || 'Unknown Player';
+                  
                   return (
                     <div
                       key={match.matchId}
                       className="flex items-center justify-between p-4 bg-slate-50 rounded-lg"
                     >
-                      <div className="flex items-center space-x-4">
+                      <div className="flex items-center space-x-4 flex-1">
                         <div className="w-10 h-10 bg-rose-100 rounded-lg flex items-center justify-center">
                           <Trophy className="w-5 h-5 text-rose-500" />
                         </div>
-                        <div>
+                        <div className="flex-1">
                           <p className="font-semibold text-slate-800">
                             {getGameDisplayName(match.gameType)}
                           </p>
                           <p className="text-sm text-slate-600">
+                            vs {opponentName}
+                          </p>
+                          <p className="text-xs text-slate-500 mt-1">
                             {formatDate(match.lastMoveAt)}
                           </p>
                         </div>
