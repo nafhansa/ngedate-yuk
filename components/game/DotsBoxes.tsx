@@ -27,9 +27,9 @@ export function DotsBoxes({ match, makeMove }: DotsBoxesProps) {
   // --- 1. DATA PREPARATION ---
   
   // Kita perlu tipe data yang fleksibel (boolean untuk data lama, string untuk data baru)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line
   let hLines: any[][];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line
   let vLines: any[][];
   
   // Load H Lines
@@ -138,11 +138,11 @@ export function DotsBoxes({ match, makeMove }: DotsBoxesProps) {
     await submitMove(hLines, newVLines, newBoxes, newScores, boxCompleted);
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line
   const submitMove = async (
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line
     newHLines: any[][], 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line
     newVLines: any[][], 
     newBoxes: (string|null)[], 
     newScores: Record<string, number>, 
