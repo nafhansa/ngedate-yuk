@@ -9,6 +9,8 @@ import { Card } from '@/components/ui/Card';
 import { Heart } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+export const dynamic = 'force-dynamic';
+
 export default function LoginPage() {
   const { user, loading } = useAuth();
   const router = useRouter();

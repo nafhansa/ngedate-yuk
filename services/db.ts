@@ -12,8 +12,18 @@ import {
   Timestamp,
   deleteDoc
 } from 'firebase/firestore';
-import { db } from './firebase';
+import { getDbInstance } from './firebase';
 import { User as FirebaseUser } from 'firebase/auth';
+import { array2DToObject } from '@/utils/helpers';
+
+// Helper to get db instance or throw error
+const getDb = () => {
+  const dbInstance = getDbInstance();
+  if (!dbInstance) {
+    throw new Error('Firebase not initialized');
+  }
+  return dbInstance;
+};
 
 export interface UserData {
   uid: string;
@@ -56,7 +66,7 @@ export interface MatchData {
 
 export const getUser = async (uid: string): Promise<UserData | null> => {
   try {
-    const userDoc = await getDoc(doc(db, 'users', uid));
+    const userDoc = await getDoc(doc(getDb(), 'users', uid));
     if (userDoc.exists()) {
       return userDoc.data() as UserData;
     }
@@ -82,7 +92,7 @@ export const createUser = async (user: FirebaseUser): Promise<void> => {
       },
     };
 
-    await setDoc(doc(db, 'users', user.uid), {
+    await setDoc(doc(getDb(), 'users', user.uid), {
       ...userData,
       createdAt: serverTimestamp(),
       lastLogin: serverTimestamp(),
@@ -95,7 +105,7 @@ export const createUser = async (user: FirebaseUser): Promise<void> => {
 
 export const updateUserLastLogin = async (uid: string): Promise<void> => {
   try {
-    await updateDoc(doc(db, 'users', uid), {
+    await updateDoc(doc(getDb(), 'users', uid), {
       lastLogin: serverTimestamp(),
     });
   } catch (error) {
@@ -106,7 +116,7 @@ export const updateUserLastLogin = async (uid: string): Promise<void> => {
 
 export const getUserByEmail = async (email: string): Promise<UserData | null> => {
   try {
-    const q = query(collection(db, 'users'), where('email', '==', email));
+    const q = query(collection(getDb(), 'users'), where('email', '==', email));
     const querySnapshot = await getDocs(q);
     if (!querySnapshot.empty) {
       return querySnapshot.docs[0].data() as UserData;
@@ -147,7 +157,7 @@ export const requestPartner = async (currentUid: string, partnerEmail: string): 
     }
 
     // Create request document in partnerRequests collection
-    const requestRef = doc(collection(db, 'partnerRequests'));
+    const requestRef = doc(collection(getDb(), 'partnerRequests'));
     await setDoc(requestRef, {
       requestId: requestRef.id,
       fromUid: currentUid,
@@ -165,7 +175,7 @@ export const requestPartner = async (currentUid: string, partnerEmail: string): 
 export const getPendingRequest = async (fromUid: string, toUid: string): Promise<PartnerRequest | null> => {
   try {
     const q = query(
-      collection(db, 'partnerRequests'),
+      collection(getDb(), 'partnerRequests'),
       where('fromUid', '==', fromUid),
       where('toUid', '==', toUid),
       where('status', '==', 'pending')
@@ -185,7 +195,7 @@ export const getPendingRequest = async (fromUid: string, toUid: string): Promise
 export const getIncomingRequests = async (uid: string): Promise<PartnerRequest[]> => {
   try {
     const q = query(
-      collection(db, 'partnerRequests'),
+      collection(getDb(), 'partnerRequests'),
       where('toUid', '==', uid),
       where('status', '==', 'pending')
     );
@@ -200,7 +210,7 @@ export const getIncomingRequests = async (uid: string): Promise<PartnerRequest[]
 // Approve partner request
 export const approvePartnerRequest = async (currentUid: string, requestId: string): Promise<void> => {
   try {
-    const requestDoc = await getDoc(doc(db, 'partnerRequests', requestId));
+    const requestDoc = await getDoc(doc(getDb(), 'partnerRequests', requestId));
     if (!requestDoc.exists()) {
       throw new Error('Request not found');
     }
@@ -230,7 +240,7 @@ export const approvePartnerRequest = async (currentUid: string, requestId: strin
     }
 
     // Update request status first (this is allowed by rules)
-    await updateDoc(doc(db, 'partnerRequests', requestId), {
+    await updateDoc(doc(getDb(), 'partnerRequests', requestId), {
       status: 'approved',
     });
 
@@ -249,7 +259,7 @@ export const approvePartnerRequest = async (currentUid: string, requestId: strin
       await updateDoc(doc(db, 'users', currentUid), {
         partnerUid: null,
       });
-      await updateDoc(doc(db, 'partnerRequests', requestId), {
+      await updateDoc(doc(getDb(), 'partnerRequests', requestId), {
         status: 'pending',
       });
       throw new Error(`Failed to update partner: ${error.message}`);
@@ -258,12 +268,12 @@ export const approvePartnerRequest = async (currentUid: string, requestId: strin
     // Delete other pending requests from/to these users
     const allRequests = await getDocs(
       query(
-        collection(db, 'partnerRequests'),
+        collection(getDb(), 'partnerRequests'),
         where('status', '==', 'pending')
       )
     );
     
-    const batch = writeBatch(db);
+    const batch = writeBatch(getDb());
     allRequests.docs.forEach(docSnap => {
       const req = docSnap.data() as PartnerRequest;
       if ((req.fromUid === currentUid || req.toUid === currentUid || 
@@ -285,7 +295,7 @@ export const approvePartnerRequest = async (currentUid: string, requestId: strin
 // Decline partner request
 export const declinePartnerRequest = async (currentUid: string, requestId: string): Promise<void> => {
   try {
-    const requestDoc = await getDoc(doc(db, 'partnerRequests', requestId));
+    const requestDoc = await getDoc(doc(getDb(), 'partnerRequests', requestId));
     if (!requestDoc.exists()) {
       throw new Error('Request not found');
     }
@@ -300,7 +310,7 @@ export const declinePartnerRequest = async (currentUid: string, requestId: strin
     }
 
     // Update request status to declined
-    await updateDoc(doc(db, 'partnerRequests', requestId), {
+    await updateDoc(doc(getDb(), 'partnerRequests', requestId), {
       status: 'declined',
     });
   } catch (error) {
@@ -325,7 +335,7 @@ export const createRoomWithCode = async (
   hostUid: string
 ): Promise<{ matchId: string; roomCode: string }> => {
   try {
-    const matchRef = doc(collection(db, 'matches'));
+    const matchRef = doc(collection(getDb(), 'matches'));
     const matchId = matchRef.id;
     const roomCode = generateRoomCode();
 
@@ -363,7 +373,7 @@ export const joinRoomByCode = async (
 
     // Find match with this room code, game type, and status 'waiting'
     const q = query(
-      collection(db, 'matches'),
+      collection(getDb(), 'matches'),
       where('roomCode', '==', upperRoomCode),
       where('gameType', '==', gameType),
       where('status', '==', 'waiting')
@@ -382,7 +392,7 @@ export const joinRoomByCode = async (
     if (querySnapshot.empty) {
       // Try to find if room exists but with different status
       const qAnyStatus = query(
-        collection(db, 'matches'),
+        collection(getDb(), 'matches'),
         where('roomCode', '==', upperRoomCode),
         where('gameType', '==', gameType)
       );
@@ -447,7 +457,7 @@ export const createMatch = async (
   partnerUid: string
 ): Promise<string> => {
   try {
-    const matchRef = doc(collection(db, 'matches'));
+    const matchRef = doc(collection(getDb(), 'matches'));
     const matchId = matchRef.id;
     const roomCode = generateRoomCode();
 
@@ -475,7 +485,7 @@ export const createMatch = async (
 
 export const getMatch = async (matchId: string): Promise<MatchData | null> => {
   try {
-    const matchDoc = await getDoc(doc(db, 'matches', matchId));
+    const matchDoc = await getDoc(doc(getDb(), 'matches', matchId));
     if (matchDoc.exists()) {
       return matchDoc.data() as MatchData;
     }
@@ -488,7 +498,7 @@ export const getMatch = async (matchId: string): Promise<MatchData | null> => {
 
 export const updateMatch = async (matchId: string, updates: Partial<MatchData>): Promise<void> => {
   try {
-    await updateDoc(doc(db, 'matches', matchId), {
+    await updateDoc(doc(getDb(), 'matches', matchId), {
       ...updates,
       lastMoveAt: serverTimestamp(),
     });
@@ -501,7 +511,7 @@ export const updateMatch = async (matchId: string, updates: Partial<MatchData>):
 export const getMatchHistory = async (uid: string): Promise<MatchData[]> => {
   try {
     const q = query(
-      collection(db, 'matches'),
+      collection(getDb(), 'matches'),
       where('players', 'array-contains', uid),
       where('status', '==', 'finished')
     );
@@ -518,11 +528,24 @@ function getInitialGameState(gameType: GameType): any {
     case 'tictactoe':
       return { board: Array(9).fill(null) };
     case 'connect4':
-      return { grid: Array(6).fill(null).map(() => Array(7).fill(null)) };
+      // Convert nested array to object for Firestore compatibility
+      const connect4Grid = Array(10).fill(null).map(() => Array(10).fill(null));
+      return { 
+        grid: array2DToObject(connect4Grid),
+        gridRows: 10,
+        gridCols: 10,
+      };
     case 'dotsboxes':
+      // Convert nested arrays to objects for Firestore compatibility
+      const hLines = Array(4).fill(null).map(() => Array(3).fill(false));
+      const vLines = Array(3).fill(null).map(() => Array(4).fill(false));
       return {
-        hLines: Array(4).fill(null).map(() => Array(3).fill(false)),
-        vLines: Array(3).fill(null).map(() => Array(4).fill(false)),
+        hLines: array2DToObject(hLines),
+        vLines: array2DToObject(vLines),
+        hLinesRows: 4,
+        hLinesCols: 3,
+        vLinesRows: 3,
+        vLinesCols: 4,
         boxes: Array(9).fill(null),
         scores: {},
       };

@@ -11,24 +11,64 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '',
 };
 
-let app: FirebaseApp;
-let auth: Auth;
-let db: Firestore;
+// Check if Firebase config is valid
+const isConfigValid = () => {
+  return !!(
+    firebaseConfig.apiKey &&
+    firebaseConfig.authDomain &&
+    firebaseConfig.projectId
+  );
+};
 
-if (typeof window !== 'undefined') {
-  if (!getApps().length) {
-    app = initializeApp(firebaseConfig);
-  } else {
-    app = getApps()[0];
+let app: FirebaseApp | null = null;
+let auth: Auth | null = null;
+let db: Firestore | null = null;
+
+// Initialize Firebase function
+const initFirebase = () => {
+  if (app && auth && db) {
+    return; // Already initialized
   }
-  auth = getAuth(app);
-  db = getFirestore(app);
-} else {
-  // Server-side: create dummy instances
-  app = initializeApp(firebaseConfig);
-  auth = getAuth(app);
-  db = getFirestore(app);
+
+  if (!isConfigValid()) {
+    console.warn('Firebase config is not valid. Please check your environment variables.');
+    return;
+  }
+
+  try {
+    if (!getApps().length) {
+      app = initializeApp(firebaseConfig);
+    } else {
+      app = getApps()[0];
+    }
+    auth = getAuth(app);
+    db = getFirestore(app);
+  } catch (error) {
+    console.error('Firebase initialization error:', error);
+  }
+};
+
+// Only initialize Firebase on the client side
+// This prevents build-time errors when env vars are not available
+if (typeof window !== 'undefined') {
+  initFirebase();
 }
 
+// Export getters that initialize if needed (for client-side use)
+export const getAuthInstance = (): Auth | null => {
+  if (typeof window !== 'undefined' && !auth) {
+    initFirebase();
+  }
+  return auth;
+};
+
+export const getDbInstance = (): Firestore | null => {
+  if (typeof window !== 'undefined' && !db) {
+    initFirebase();
+  }
+  return db;
+};
+
+// Export the instances (may be null during build)
 export { auth, db };
 export default app;

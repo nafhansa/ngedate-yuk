@@ -12,6 +12,8 @@ import { formatDate, getGameDisplayName } from '@/utils/helpers';
 import toast from 'react-hot-toast';
 import { UserPlus, Trophy, TrendingUp, TrendingDown, Minus, Check, X, Loader2 } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 export default function ProfilePage() {
   const { user, userData } = useAuth();
   const [partnerEmail, setPartnerEmail] = useState('');

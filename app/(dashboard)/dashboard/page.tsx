@@ -13,6 +13,8 @@ import { Grid3x3, Layers, Anchor, Boxes, Copy, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { createRoomWithCode, joinRoomByCode } from '@/services/db';
 
+export const dynamic = 'force-dynamic';
+
 const games = [
   {
     id: 'tictactoe',

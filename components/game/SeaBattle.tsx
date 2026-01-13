@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { MatchData } from '@/services/db';
 import { generateSeaBattleBoard } from '@/utils/gameRules';
+import { objectToArray2D, array2DToObject } from '@/utils/helpers';
 import toast from 'react-hot-toast';
 
 interface SeaBattleProps {
@@ -18,9 +19,30 @@ export function SeaBattle({ match, makeMove }: SeaBattleProps) {
 
   if (!user || !match) return null;
 
-  // Use state directly from match for real-time updates
-  const p1Board = match.gameState?.p1Board || null;
-  const p2Board = match.gameState?.p2Board || null;
+  // Convert Firestore object format to 2D arrays for game logic
+  let p1Board: number[][] | null = null;
+  let p2Board: number[][] | null = null;
+
+  if (match.gameState?.p1Board) {
+    if (typeof match.gameState.p1Board === 'object' && !Array.isArray(match.gameState.p1Board)) {
+      // Firestore object format: convert to array
+      p1Board = objectToArray2D(match.gameState.p1Board, GRID_SIZE, GRID_SIZE);
+    } else if (Array.isArray(match.gameState.p1Board)) {
+      // Legacy array format
+      p1Board = match.gameState.p1Board;
+    }
+  }
+
+  if (match.gameState?.p2Board) {
+    if (typeof match.gameState.p2Board === 'object' && !Array.isArray(match.gameState.p2Board)) {
+      // Firestore object format: convert to array
+      p2Board = objectToArray2D(match.gameState.p2Board, GRID_SIZE, GRID_SIZE);
+    } else if (Array.isArray(match.gameState.p2Board)) {
+      // Legacy array format
+      p2Board = match.gameState.p2Board;
+    }
+  }
+
   const p1Shots = match.gameState?.p1Shots || [];
   const p2Shots = match.gameState?.p2Shots || [];
   const p1Ready = match.gameState?.p1Ready || false;
@@ -40,9 +62,11 @@ export function SeaBattle({ match, makeMove }: SeaBattleProps) {
     if (!myBoard) {
       // Generate board if not set
       const board = generateSeaBattleBoard();
+      // Convert array to Firestore object format
+      const boardObject = array2DToObject(board);
       const newGameState = {
         ...match.gameState,
-        [isPlayer1 ? 'p1Board' : 'p2Board']: board,
+        [isPlayer1 ? 'p1Board' : 'p2Board']: boardObject,
         [isPlayer1 ? 'p1Ready' : 'p2Ready']: true,
       };
       

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { doc, onSnapshot, Unsubscribe } from 'firebase/firestore';
-import { db } from '@/services/firebase';
+import { getDbInstance } from '@/services/firebase';
 import { MatchData, updateMatch } from '@/services/db';
 
 export function useGameLogic(matchId: string | null) {
@@ -16,8 +16,15 @@ export function useGameLogic(matchId: string | null) {
       return;
     }
 
+    const dbInstance = getDbInstance();
+    if (!dbInstance) {
+      setError('Firebase not initialized');
+      setLoading(false);
+      return;
+    }
+
     const unsubscribe: Unsubscribe = onSnapshot(
-      doc(db, 'matches', matchId),
+      doc(dbInstance, 'matches', matchId),
       (snapshot) => {
         if (snapshot.exists()) {
           const matchData = snapshot.data() as MatchData;

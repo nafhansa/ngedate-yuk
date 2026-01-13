@@ -4,11 +4,15 @@ import {
   signOut as firebaseSignOut,
   User as FirebaseUser 
 } from 'firebase/auth';
-import { auth } from './firebase';
+import { getAuthInstance } from './firebase';
 
 const provider = new GoogleAuthProvider();
 
 export const signInWithGoogle = async () => {
+  const auth = getAuthInstance();
+  if (!auth) {
+    throw new Error('Firebase not initialized');
+  }
   try {
     const result = await signInWithPopup(auth, provider);
     return result.user;
@@ -19,6 +23,10 @@ export const signInWithGoogle = async () => {
 };
 
 export const signOut = async () => {
+  const auth = getAuthInstance();
+  if (!auth) {
+    throw new Error('Firebase not initialized');
+  }
   try {
     await firebaseSignOut(auth);
   } catch (error) {

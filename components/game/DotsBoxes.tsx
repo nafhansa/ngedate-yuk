@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { MatchData } from '@/services/db';
 import { checkBoxCompleted, checkDotsBoxesWinner } from '@/utils/gameRules';
+import { objectToArray2D, array2DToObject } from '@/utils/helpers';
 import toast from 'react-hot-toast';
 
 interface DotsBoxesProps {
@@ -19,9 +20,34 @@ export function DotsBoxes({ match, makeMove }: DotsBoxesProps) {
 
   if (!user || !match) return null;
 
-  // Use state directly from match for real-time updates
-  const hLines = match.gameState?.hLines || Array(4).fill(null).map(() => Array(3).fill(false));
-  const vLines = match.gameState?.vLines || Array(3).fill(null).map(() => Array(4).fill(false));
+  // Convert Firestore object format to 2D arrays for game logic
+  let hLines: boolean[][];
+  let vLines: boolean[][];
+  
+  if (match.gameState?.hLines && typeof match.gameState.hLines === 'object' && !Array.isArray(match.gameState.hLines)) {
+    // Firestore object format: convert to array
+    const hRows = match.gameState.hLinesRows || 4;
+    const hCols = match.gameState.hLinesCols || 3;
+    hLines = objectToArray2D(match.gameState.hLines, hRows, hCols);
+  } else if (Array.isArray(match.gameState?.hLines)) {
+    // Legacy array format
+    hLines = match.gameState.hLines;
+  } else {
+    hLines = Array(4).fill(null).map(() => Array(3).fill(false));
+  }
+
+  if (match.gameState?.vLines && typeof match.gameState.vLines === 'object' && !Array.isArray(match.gameState.vLines)) {
+    // Firestore object format: convert to array
+    const vRows = match.gameState.vLinesRows || 3;
+    const vCols = match.gameState.vLinesCols || 4;
+    vLines = objectToArray2D(match.gameState.vLines, vRows, vCols);
+  } else if (Array.isArray(match.gameState?.vLines)) {
+    // Legacy array format
+    vLines = match.gameState.vLines;
+  } else {
+    vLines = Array(3).fill(null).map(() => Array(4).fill(false));
+  }
+
   const boxes = match.gameState?.boxes || Array(9).fill(null);
   const scores = match.gameState?.scores || {};
 
@@ -79,10 +105,18 @@ export function DotsBoxes({ match, makeMove }: DotsBoxesProps) {
       winner = checkDotsBoxesWinner(newScores);
     }
 
+    // Convert arrays back to Firestore object format
+    const hLinesObject = array2DToObject(newHLines);
+    const vLinesObject = array2DToObject(vLines);
+
     let updates: Partial<MatchData> = {
       gameState: {
-        hLines: newHLines,
-        vLines,
+        hLines: hLinesObject,
+        vLines: vLinesObject,
+        hLinesRows: 4,
+        hLinesCols: 3,
+        vLinesRows: 3,
+        vLinesCols: 4,
         boxes: newBoxes,
         scores: newScores,
       },
@@ -152,10 +186,18 @@ export function DotsBoxes({ match, makeMove }: DotsBoxesProps) {
       winner = checkDotsBoxesWinner(newScores);
     }
 
+    // Convert arrays back to Firestore object format
+    const hLinesObject = array2DToObject(hLines);
+    const vLinesObject = array2DToObject(newVLines);
+
     let updates: Partial<MatchData> = {
       gameState: {
-        hLines,
-        vLines: newVLines,
+        hLines: hLinesObject,
+        vLines: vLinesObject,
+        hLinesRows: 4,
+        hLinesCols: 3,
+        vLinesRows: 3,
+        vLinesCols: 4,
         boxes: newBoxes,
         scores: newScores,
       },

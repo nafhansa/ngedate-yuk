@@ -3,6 +3,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { MatchData } from '@/services/db';
 import { checkConnect4Winner } from '@/utils/gameRules';
+import { objectToArray2D, array2DToObject } from '@/utils/helpers';
 import toast from 'react-hot-toast';
 
 interface Connect4Props {
@@ -19,8 +20,20 @@ export function Connect4({ match, makeMove }: Connect4Props) {
 
   if (!user || !match) return null;
 
-  // Inisialisasi grid 10x10 jika belum ada
-  const grid = match.gameState?.grid || Array(ROWS).fill(null).map(() => Array(COLS).fill(null));
+  // Convert Firestore object format to 2D array for game logic
+  let grid: (string | null)[][];
+  if (match.gameState?.grid && typeof match.gameState.grid === 'object' && !Array.isArray(match.gameState.grid)) {
+    // Firestore object format: convert to array
+    const gridRows = match.gameState.gridRows || ROWS;
+    const gridCols = match.gameState.gridCols || COLS;
+    grid = objectToArray2D(match.gameState.grid, gridRows, gridCols);
+  } else if (Array.isArray(match.gameState?.grid)) {
+    // Legacy array format (for backward compatibility)
+    grid = match.gameState.grid;
+  } else {
+    // Initialize empty grid
+    grid = Array(ROWS).fill(null).map(() => Array(COLS).fill(null));
+  }
   const isMyTurn = match.turn === user.uid;
   const myPlayerId = user.uid;
   const opponentId = match.players.find(p => p !== user.uid) || '';
@@ -57,8 +70,16 @@ export function Connect4({ match, makeMove }: Connect4Props) {
     const winner = checkConnect4Winner(newGrid);
     const nextTurn = match.players.find(p => p !== user.uid) || match.turn;
 
+    // Convert array back to Firestore object format
+    const gridObject = array2DToObject(newGrid);
+
     let updates: Partial<MatchData> = {
-      gameState: { ...match.gameState, grid: newGrid },
+      gameState: { 
+        ...match.gameState, 
+        grid: gridObject,
+        gridRows: ROWS,
+        gridCols: COLS,
+      },
       turn: winner ? match.turn : nextTurn,
     };
 
