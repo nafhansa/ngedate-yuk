@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { MatchData } from '@/services/db';
 import toast from 'react-hot-toast';
@@ -59,14 +59,17 @@ export function SeaBattle({ match, makeMove }: SeaBattleProps) {
   const opponentUid = match.players.find(id => id !== myUid);
 
   const gameState = match.gameState || {};
-  const allShips = gameState.ships || {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const allShips: Record<string, ShipInstance[]> = gameState.ships || {};
   const mySavedShips: ShipInstance[] = allShips[myUid] || [];
   
-  const allShots = gameState.shots || {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const allShots: Record<string, Point[]> = gameState.shots || {};
   const myShots: Point[] = allShots[myUid] || [];
   const opponentShots: Point[] = (opponentUid ? allShots[opponentUid] : []) || [];
 
-  const playersReady = gameState.ready || {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const playersReady: Record<string, boolean> = gameState.ready || {};
   const amIReady = playersReady[myUid] || false;
   const isOpponentReady = opponentUid ? playersReady[opponentUid] : false;
 
@@ -74,17 +77,6 @@ export function SeaBattle({ match, makeMove }: SeaBattleProps) {
   const isSetupPhase = !amIReady;
   const isWaitingPhase = amIReady && !isOpponentReady;
   const isBattlePhase = amIReady && isOpponentReady && match.status === 'playing';
-
-  // --- KEYBOARD SHORTCUTS ---
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key.toLowerCase() === 'r') {
-        setOrientation(prev => prev === 'H' ? 'V' : 'H');
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
 
   // --- LOGIC: SETUP & PLACEMENT ---
 
@@ -126,10 +118,6 @@ export function SeaBattle({ match, makeMove }: SeaBattleProps) {
         
         setMyFleet(prev => prev.map(s => s.id === ship.id ? { ...s, positions: newPositions, placed: true } : s));
         setSelectedShipId(null); // Lepas kapal
-        
-        // Auto select next unplaced ship (optional quality of life)
-        const nextShip = myFleet.find(s => !s.placed && s.id !== ship.id);
-        // if (nextShip) setSelectedShipId(nextShip.id); 
       } else {
         toast.error("Posisi tidak valid!");
       }
@@ -163,8 +151,8 @@ export function SeaBattle({ match, makeMove }: SeaBattleProps) {
   };
 
   const handleRandomize = () => {
-    // Algoritma simple random placement
-    let tempFleet = myFleet.map(s => ({ ...s, placed: false, positions: [] }));
+    // FIX ERROR 1: Tambahkan 'as Point[]' agar tidak dianggap never[]
+    let tempFleet = myFleet.map(s => ({ ...s, placed: false, positions: [] as Point[] }));
     
     for (let ship of tempFleet) {
       let placed = false;
@@ -271,7 +259,6 @@ export function SeaBattle({ match, makeMove }: SeaBattleProps) {
           let isInvalidGhost = false;
           
           if (activeShip && hoverPos) {
-            // Hitung apakah cell ini bagian dari ghost ship
             // Delta dari hoverPos
             const dr = r - hoverPos.r;
             const dc = c - hoverPos.c;
@@ -311,11 +298,10 @@ export function SeaBattle({ match, makeMove }: SeaBattleProps) {
 
   const renderBattleGrid = (isRadar: boolean) => {
     const grid = Array(GRID_SIZE * GRID_SIZE).fill(null);
-    const displayShips = isRadar ? [] : (mySavedShips.length ? mySavedShips : myFleet); // Di radar kapal musuh invisible (kecuali sunk logic advanced, kita simpan simple aja)
-    const shotsToCheck = isRadar ? myShots : opponentShots;
     
-    // Untuk render kapal di papan sendiri (My Fleet)
-    // Atau cek hit di Radar
+    // FIX ERROR 2 & 3: Explicitly typed
+    const displayShips: ShipInstance[] = isRadar ? [] : (mySavedShips.length > 0 ? mySavedShips : myFleet);
+    const shotsToCheck = isRadar ? myShots : opponentShots;
     
     return (
       <div 
@@ -331,9 +317,6 @@ export function SeaBattle({ match, makeMove }: SeaBattleProps) {
 
           const shot = shotsToCheck.find(s => s.r === r && s.c === c);
           
-          // Cek Hit Visual
-          // Kalau Radar: Cek kapal lawan (dari data server)
-          // Kalau MyFleet: Cek kapal sendiri
           const targetShips = isRadar ? (allShips[opponentUid!] || []) : displayShips;
           const isHit = shot && targetShips.some(s => s.positions.some(p => p.r === r && p.c === c));
           const isMiss = shot && !isHit;
