@@ -8,10 +8,11 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { Modal } from '@/components/ui/Modal';
 import { requestPartner, approvePartnerRequest, declinePartnerRequest, getMatchHistory, getUser, getIncomingRequests, removePartner, updateDisplayName, PartnerRequest, MatchData } from '@/services/db';
 import { formatDate, getGameDisplayName } from '@/utils/helpers';
 import toast from 'react-hot-toast';
-import { UserPlus, Trophy, TrendingUp, TrendingDown, Minus, Check, X, Loader2, UserX, Edit2, Save } from 'lucide-react';
+import { UserPlus, Trophy, TrendingUp, TrendingDown, Minus, Check, X, Loader2, UserX, Edit2, Save, AlertTriangle } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,6 +28,7 @@ export default function ProfilePage() {
   const [processingRequest, setProcessingRequest] = useState<Record<string, boolean>>({});
   const [loadingRequests, setLoadingRequests] = useState(true);
   const [removingPartner, setRemovingPartner] = useState(false);
+  const [showRemoveModal, setShowRemoveModal] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [newDisplayName, setNewDisplayName] = useState('');
   const [savingName, setSavingName] = useState(false);
@@ -176,11 +178,12 @@ export default function ProfilePage() {
     }
   };
 
-  const handleRemovePartner = async () => {
-    if (!confirm('Are you sure you want to remove your partner? This action cannot be undone.')) {
-      return;
-    }
+  const handleRemovePartner = () => {
+    setShowRemoveModal(true);
+  };
 
+  const confirmRemovePartner = async () => {
+    setShowRemoveModal(false);
     setRemovingPartner(true);
     try {
       await removePartner(user!.uid);
@@ -563,6 +566,80 @@ export default function ProfilePage() {
           </Card>
         </div>
       </div>
+
+      {/* Remove Partner Confirmation Modal */}
+      <Modal
+        isOpen={showRemoveModal}
+        onClose={() => setShowRemoveModal(false)}
+      >
+        <div className="text-center">
+          <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-rose-100 mb-4">
+            <AlertTriangle className="h-8 w-8 text-rose-600" />
+          </div>
+          
+          <h3 className="text-xl font-semibold text-slate-800 mb-2">
+            Remove Partner?
+          </h3>
+          
+          <p className="text-slate-600 mb-6">
+            Are you sure you want to remove your partner? This action cannot be undone.
+          </p>
+          
+          {partnerData && (
+            <div className="bg-slate-50 rounded-lg p-4 mb-6">
+              <div className="flex items-center justify-center gap-3">
+                {partnerData.photoURL ? (
+                  <Image
+                    src={partnerData.photoURL}
+                    alt={partnerData.displayName}
+                    width={40}
+                    height={40}
+                    className="w-10 h-10 rounded-full"
+                    unoptimized
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-rose-500 flex items-center justify-center text-white font-semibold">
+                    {partnerData.displayName?.[0] || 'P'}
+                  </div>
+                )}
+                <div className="text-left">
+                  <p className="font-semibold text-slate-800">{partnerData.displayName}</p>
+                  <p className="text-sm text-slate-600">{partnerData.email}</p>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setShowRemoveModal(false)}
+              className="flex-1"
+              disabled={removingPartner}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={confirmRemovePartner}
+              className="flex-1"
+              disabled={removingPartner}
+            >
+              {removingPartner ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 inline animate-spin" />
+                  Removing...
+                </>
+              ) : (
+                <>
+                  <UserX className="w-4 h-4 mr-2 inline" />
+                  Remove Partner
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </ProtectedRoute>
   );
 }
