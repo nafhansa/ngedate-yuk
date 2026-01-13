@@ -52,29 +52,6 @@ export function SeaBattle({ match, makeMove }: SeaBattleProps) {
   const [orientation, setOrientation] = useState<'H' | 'V'>('H');
   const [hoverPos, setHoverPos] = useState<Point | null>(null);
 
-  if (!user || !match) return null;
-  const myUid = user.uid;
-  const opponentUid = match.players.find(id => id !== myUid);
-
-  const gameState = match.gameState || {};
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const allShips: Record<string, ShipInstance[]> = gameState.ships || {};
-  const mySavedShips: ShipInstance[] = allShips[myUid] || [];
-  
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const allShots: Record<string, Point[]> = gameState.shots || {};
-  const myShots: Point[] = allShots[myUid] || [];
-  const opponentShots: Point[] = (opponentUid ? allShots[opponentUid] : []) || [];
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const playersReady: Record<string, boolean> = gameState.ready || {};
-  const amIReady = playersReady[myUid] || false;
-  const isOpponentReady = opponentUid ? playersReady[opponentUid] : false;
-
-  const isSetupPhase = !amIReady;
-  const isBattlePhase = amIReady && isOpponentReady && match.status === 'playing';
-  const isWaitingPhase = amIReady && !isOpponentReady;
-
   // --- KEYBOARD LISTENER (Rotate 'R') ---
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -85,6 +62,26 @@ export function SeaBattle({ match, makeMove }: SeaBattleProps) {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  if (!user || !match) return null;
+  const myUid = user.uid;
+  const opponentUid = match.players.find(id => id !== myUid);
+
+  const gameState = match.gameState || {};
+  const allShips: Record<string, ShipInstance[]> = gameState.ships || {};
+  const mySavedShips: ShipInstance[] = allShips[myUid] || [];
+  
+  const allShots: Record<string, Point[]> = gameState.shots || {};
+  const myShots: Point[] = allShots[myUid] || [];
+  const opponentShots: Point[] = (opponentUid ? allShots[opponentUid] : []) || [];
+
+  const playersReady: Record<string, boolean> = gameState.ready || {};
+  const amIReady = playersReady[myUid] || false;
+  const isOpponentReady = opponentUid ? playersReady[opponentUid] : false;
+
+  const isSetupPhase = !amIReady;
+  const isBattlePhase = amIReady && isOpponentReady && match.status === 'playing';
+  const isWaitingPhase = amIReady && !isOpponentReady;
 
   // --- LOGIC: PLACEMENT UTILS ---
 
