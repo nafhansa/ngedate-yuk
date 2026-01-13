@@ -358,17 +358,47 @@ export const joinRoomByCode = async (
   playerUid: string
 ): Promise<string> => {
   try {
+    const upperRoomCode = roomCode.toUpperCase();
+    console.log('Joining room:', { roomCode: upperRoomCode, gameType, playerUid });
+
     // Find match with this room code, game type, and status 'waiting'
     const q = query(
       collection(db, 'matches'),
-      where('roomCode', '==', roomCode.toUpperCase()),
+      where('roomCode', '==', upperRoomCode),
       where('gameType', '==', gameType),
       where('status', '==', 'waiting')
     );
+    
     const querySnapshot = await getDocs(q);
+    console.log('Query result:', { 
+      empty: querySnapshot.empty, 
+      size: querySnapshot.size,
+      docs: querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        data: doc.data()
+      }))
+    });
 
     if (querySnapshot.empty) {
-      throw new Error('Room not found or already started');
+      // Try to find if room exists but with different status
+      const qAnyStatus = query(
+        collection(db, 'matches'),
+        where('roomCode', '==', upperRoomCode),
+        where('gameType', '==', gameType)
+      );
+      const anyStatusSnapshot = await getDocs(qAnyStatus);
+      
+      if (!anyStatusSnapshot.empty) {
+        const matchData = anyStatusSnapshot.docs[0].data() as MatchData;
+        if (matchData.status !== 'waiting') {
+          throw new Error('Room sudah dimulai atau selesai');
+        }
+        if (matchData.players.length >= 2) {
+          throw new Error('Room sudah penuh');
+        }
+      }
+      
+      throw new Error('Room tidak ditemukan. Pastikan kode room benar dan game type sesuai');
     }
 
     const matchDoc = querySnapshot.docs[0];
@@ -376,23 +406,37 @@ export const joinRoomByCode = async (
 
     // Check if player is already in the room
     if (matchData.players.includes(playerUid)) {
+      console.log('Player already in room, returning matchId');
       return matchData.matchId;
     }
 
     // Check if room is full
     if (matchData.players.length >= 2) {
-      throw new Error('Room is full');
+      throw new Error('Room sudah penuh');
     }
 
     // Add player to the room
+    console.log('Adding player to room:', { 
+      currentPlayers: matchData.players, 
+      newPlayer: playerUid 
+    });
     await updateDoc(matchDoc.ref, {
       players: [...matchData.players, playerUid],
     });
 
+    console.log('Successfully joined room:', matchData.matchId);
     return matchData.matchId;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error joining room:', error);
-    throw error;
+    // If it's a Firebase permissions error, provide helpful message
+    if (error.code === 'permission-denied' || error.message?.includes('permission')) {
+      throw new Error('Tidak memiliki izin. Pastikan Firestore rules sudah di-deploy');
+    }
+    // Re-throw with original message if it's already a user-friendly error
+    if (error.message && !error.code) {
+      throw error;
+    }
+    throw new Error(error.message || 'Gagal bergabung ke room');
   }
 };
 
