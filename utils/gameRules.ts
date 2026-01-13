@@ -36,58 +36,50 @@ export function checkTicTacToeWinner(board: (string | null)[]) {
 
 // Connect 4
 export const checkConnect4Winner = (grid: (string | null)[][]): string | 'draw' | null => {
-  const rows = 6;
-  const cols = 7;
+  const rows = grid.length;
+  const cols = grid[0].length;
 
-  // Check horizontal
+  // Check horizontal (-)
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col <= cols - 4; col++) {
       const cell = grid[row][col];
       if (cell && 
-          grid[row][col + 1] === cell &&
-          grid[row][col + 2] === cell &&
-          grid[row][col + 3] === cell) {
-        return cell;
-      }
+          cell === grid[row][col + 1] &&
+          cell === grid[row][col + 2] &&
+          cell === grid[row][col + 3]) return cell;
     }
   }
 
-  // Check vertical
+  // Check vertical (|)
   for (let row = 0; row <= rows - 4; row++) {
     for (let col = 0; col < cols; col++) {
       const cell = grid[row][col];
       if (cell &&
-          grid[row + 1][col] === cell &&
-          grid[row + 2][col] === cell &&
-          grid[row + 3][col] === cell) {
-        return cell;
-      }
+          cell === grid[row + 1][col] &&
+          cell === grid[row + 2][col] &&
+          cell === grid[row + 3][col]) return cell;
     }
   }
 
-  // Check diagonal /
+  // Check diagonal (/)
   for (let row = 0; row <= rows - 4; row++) {
     for (let col = 0; col <= cols - 4; col++) {
       const cell = grid[row][col];
       if (cell &&
-          grid[row + 1][col + 1] === cell &&
-          grid[row + 2][col + 2] === cell &&
-          grid[row + 3][col + 3] === cell) {
-        return cell;
-      }
+          cell === grid[row + 1][col + 1] &&
+          cell === grid[row + 2][col + 2] &&
+          cell === grid[row + 3][col + 3]) return cell;
     }
   }
 
-  // Check diagonal \
+  // Check diagonal (\)
   for (let row = 0; row <= rows - 4; row++) {
     for (let col = 3; col < cols; col++) {
       const cell = grid[row][col];
       if (cell &&
-          grid[row + 1][col - 1] === cell &&
-          grid[row + 2][col - 2] === cell &&
-          grid[row + 3][col - 3] === cell) {
-        return cell;
-      }
+          cell === grid[row + 1][col - 1] &&
+          cell === grid[row + 2][col - 2] &&
+          cell === grid[row + 3][col - 3]) return cell;
     }
   }
 

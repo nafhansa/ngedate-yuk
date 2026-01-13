@@ -1,6 +1,5 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { MatchData } from '@/services/db';
 import { checkConnect4Winner } from '@/utils/gameRules';
@@ -11,15 +10,16 @@ interface Connect4Props {
   makeMove: (updates: Partial<MatchData>) => Promise<void>;
 }
 
-const ROWS = 6;
-const COLS = 7;
+// Ubah ke 10x10
+const ROWS = 10;
+const COLS = 10;
 
 export function Connect4({ match, makeMove }: Connect4Props) {
   const { user } = useAuth();
 
   if (!user || !match) return null;
 
-  // Use grid directly from match state for real-time updates
+  // Inisialisasi grid 10x10 jika belum ada
   const grid = match.gameState?.grid || Array(ROWS).fill(null).map(() => Array(COLS).fill(null));
   const isMyTurn = match.turn === user.uid;
   const myPlayerId = user.uid;
@@ -58,19 +58,15 @@ export function Connect4({ match, makeMove }: Connect4Props) {
     const nextTurn = match.players.find(p => p !== user.uid) || match.turn;
 
     let updates: Partial<MatchData> = {
-      gameState: {
-        ...match.gameState,
-        grid: newGrid,
-      },
+      gameState: { ...match.gameState, grid: newGrid },
       turn: winner ? match.turn : nextTurn,
     };
 
     if (winner) {
+      updates.status = 'finished';
       if (winner === 'draw') {
-        updates.status = 'finished';
         updates.winnerUid = null;
       } else {
-        updates.status = 'finished';
         updates.winnerUid = winner === myPlayerId ? user.uid : opponentId;
       }
     }
@@ -83,26 +79,26 @@ export function Connect4({ match, makeMove }: Connect4Props) {
   };
 
   const getCellColor = (cell: string | null) => {
-    if (!cell) return 'bg-slate-100';
+    if (!cell) return 'bg-white'; // Diubah ke putih agar grid 10x10 lebih bersih
     if (cell === myPlayerId) return 'bg-blue-500';
     return 'bg-red-500';
   };
 
   return (
-    <div className="max-w-md mx-auto">
-      <div className="bg-slate-300 p-2 rounded-xl">
-        {/* Column buttons */}
-        <div className="grid grid-cols-7 gap-1 mb-1">
+    <div className="max-w-2xl mx-auto"> {/* Lebar ditambah untuk menampung 10 kolom */}
+      <div className="bg-slate-300 p-2 rounded-xl shadow-inner">
+        {/* Tombol Input Kolom */}
+        <div className="grid grid-cols-10 gap-1 mb-1">
           {Array.from({ length: COLS }).map((_, col) => (
             <button
               key={col}
               onClick={() => handleColumnClick(col)}
               disabled={!isMyTurn || match.status !== 'playing'}
               className={`
-                h-12 rounded-lg font-bold text-white
+                h-10 rounded-t-lg font-bold text-white text-xs
                 ${isMyTurn && match.status === 'playing' 
-                  ? 'bg-rose-500 hover:bg-rose-600 cursor-pointer' 
-                  : 'bg-slate-400 cursor-not-allowed'}
+                  ? 'bg-rose-500 hover:bg-rose-600' 
+                  : 'bg-slate-400 opacity-50'}
                 transition-colors
               `}
             >
@@ -111,23 +107,20 @@ export function Connect4({ match, makeMove }: Connect4Props) {
           ))}
         </div>
 
-        {/* Grid */}
-        <div className="grid grid-cols-7 gap-1">
-          {Array.from({ length: ROWS }).map((_, row) =>
-            Array.from({ length: COLS }).map((_, col) => {
-              const cell = grid[row]?.[col] || null;
-              return (
-                <div
-                  key={`${row}-${col}`}
-                  className={`
-                    aspect-square rounded-full ${getCellColor(cell)}
-                    border-2 border-slate-400
-                  `}
-                />
-              );
-            })
-          )}
-        </div>
+        {/* Grid 10x10 */}
+        <div className="grid grid-cols-10 gap-1 bg-slate-400 p-1 rounded-lg">
+  {grid.map((rowArr: (string | null)[], row: number) =>
+    rowArr.map((cell: string | null, col: number) => (
+      <div
+        key={`${row}-${col}`}
+        className={`
+          aspect-square rounded-full ${getCellColor(cell)}
+          border border-slate-500 shadow-inner
+        `}
+      />
+    ))
+  )}
+</div>
       </div>
     </div>
   );
