@@ -594,16 +594,17 @@ function getInitialGameState(gameType: GameType): any {
       };
     case 'dotsboxes':
       // Convert nested arrays to objects for Firestore compatibility
-      const hLines = Array(4).fill(null).map(() => Array(3).fill(false));
-      const vLines = Array(3).fill(null).map(() => Array(4).fill(false));
+      // 8x8 grid: 9 dots per side = 9 rows of hLines with 8 cols, 8 rows of vLines with 9 cols
+      const hLines = Array(9).fill(null).map(() => Array(8).fill(false));
+      const vLines = Array(8).fill(null).map(() => Array(9).fill(false));
       return {
         hLines: array2DToObject(hLines),
         vLines: array2DToObject(vLines),
-        hLinesRows: 4,
-        hLinesCols: 3,
-        vLinesRows: 3,
-        vLinesCols: 4,
-        boxes: Array(9).fill(null),
+        hLinesRows: 9,
+        hLinesCols: 8,
+        vLinesRows: 8,
+        vLinesCols: 9,
+        boxes: Array(64).fill(null),
         scores: {},
       };
     case 'seabattle':

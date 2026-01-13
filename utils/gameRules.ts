@@ -109,8 +109,9 @@ export const checkBoxCompleted = (
   hLines: boolean[][],
   vLines: boolean[][]
 ): boolean => {
-  const row = Math.floor(boxIndex / 3);
-  const col = boxIndex % 3;
+  const BOXES_PER_ROW = 8; // 8x8 grid
+  const row = Math.floor(boxIndex / BOXES_PER_ROW);
+  const col = boxIndex % BOXES_PER_ROW;
 
   const top = hLines[row][col];
   const bottom = hLines[row + 1][col];

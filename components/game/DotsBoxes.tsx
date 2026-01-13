@@ -11,8 +11,8 @@ interface DotsBoxesProps {
   makeMove: (updates: Partial<MatchData>) => Promise<void>;
 }
 
-const DOTS = 4;
-const BOXES = 3;
+const DOTS = 9; // 8x8 grid = 9 dots per side
+const BOXES = 8; // 8 boxes per side
 
 // Warna Player (Konsisten dengan Box)
 const P1_COLOR_CLASS = 'bg-blue-500'; // Biru untuk Player 1
@@ -34,28 +34,28 @@ export function DotsBoxes({ match, makeMove }: DotsBoxesProps) {
   
   // Load H Lines
   if (match.gameState?.hLines && typeof match.gameState.hLines === 'object' && !Array.isArray(match.gameState.hLines)) {
-    const hRows = match.gameState.hLinesRows || 4;
-    const hCols = match.gameState.hLinesCols || 3;
+    const hRows = match.gameState.hLinesRows || 9;
+    const hCols = match.gameState.hLinesCols || 8;
     hLines = objectToArray2D(match.gameState.hLines, hRows, hCols);
   } else if (Array.isArray(match.gameState?.hLines)) {
     hLines = match.gameState.hLines;
   } else {
-    hLines = Array(4).fill(null).map(() => Array(3).fill(false));
+    hLines = Array(9).fill(null).map(() => Array(8).fill(false));
   }
 
   // Load V Lines
   if (match.gameState?.vLines && typeof match.gameState.vLines === 'object' && !Array.isArray(match.gameState.vLines)) {
-    const vRows = match.gameState.vLinesRows || 3;
-    const vCols = match.gameState.vLinesCols || 4;
+    const vRows = match.gameState.vLinesRows || 8;
+    const vCols = match.gameState.vLinesCols || 9;
     vLines = objectToArray2D(match.gameState.vLines, vRows, vCols);
   } else if (Array.isArray(match.gameState?.vLines)) {
     vLines = match.gameState.vLines;
   } else {
-    vLines = Array(3).fill(null).map(() => Array(4).fill(false));
+    vLines = Array(8).fill(null).map(() => Array(9).fill(false));
   }
 
   // Fix Type Casting for Rendering
-  const boxes: (string | null)[] = match.gameState?.boxes || Array(9).fill(null);
+  const boxes: (string | null)[] = match.gameState?.boxes || Array(64).fill(null);
   const scores = match.gameState?.scores || {};
 
   const isMyTurn = match.turn === user.uid;
@@ -160,8 +160,8 @@ export function DotsBoxes({ match, makeMove }: DotsBoxesProps) {
       gameState: {
         hLines: array2DToObject(newHLines),
         vLines: array2DToObject(newVLines),
-        hLinesRows: 4, hLinesCols: 3,
-        vLinesRows: 3, vLinesCols: 4,
+        hLinesRows: 9, hLinesCols: 8,
+        vLinesRows: 8, vLinesCols: 9,
         boxes: newBoxes,
         scores: newScores,
       },
@@ -194,7 +194,7 @@ export function DotsBoxes({ match, makeMove }: DotsBoxesProps) {
   const getOpponentId = () => match.players.find(p => p !== myPlayerId) || '';
 
   return (
-    <div className="max-w-md mx-auto select-none">
+    <div className="max-w-2xl mx-auto select-none">
       
       {/* Score Board */}
       <div className="flex justify-between items-center mb-6 bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
@@ -222,10 +222,10 @@ export function DotsBoxes({ match, makeMove }: DotsBoxesProps) {
         <div className="relative aspect-square w-full">
           
           {/* LAYER 1: CHECKERBOARD */}
-          <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 rounded-xl overflow-hidden pointer-events-none">
-            {Array.from({ length: 9 }).map((_, i) => {
-              const row = Math.floor(i / 3);
-              const col = i % 3;
+          <div className="absolute inset-0 grid grid-cols-8 grid-rows-8 rounded-xl overflow-hidden pointer-events-none">
+            {Array.from({ length: 64 }).map((_, i) => {
+              const row = Math.floor(i / 8);
+              const col = i % 8;
               const isEven = (row + col) % 2 === 0;
               return (
                 <div 
@@ -237,7 +237,7 @@ export function DotsBoxes({ match, makeMove }: DotsBoxesProps) {
           </div>
 
           {/* LAYER 2: FILLED BOXES */}
-          <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 pointer-events-none">
+          <div className="absolute inset-0 grid grid-cols-8 grid-rows-8 pointer-events-none">
             {boxes.map((owner, i) => (
               <div key={`box-${i}`} className="p-1.5 transition-all duration-500 ease-out transform scale-100">
                 {owner && (
