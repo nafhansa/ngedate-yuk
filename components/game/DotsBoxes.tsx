@@ -15,8 +15,8 @@ const DOTS = 4;
 const BOXES = 3;
 
 // Warna Player (Konsisten dengan Box)
-const P1_COLOR_CLASS = 'bg-cyan-400';
-const P2_COLOR_CLASS = 'bg-rose-500';
+const P1_COLOR_CLASS = 'bg-blue-500'; // Biru untuk Player 1
+const P2_COLOR_CLASS = 'bg-pink-500'; // Pink untuk Player 2
 const NEUTRAL_COLOR_CLASS = 'bg-slate-700'; // Untuk data lama/legacy
 
 export function DotsBoxes({ match, makeMove }: DotsBoxesProps) {
@@ -273,7 +273,7 @@ export function DotsBoxes({ match, makeMove }: DotsBoxesProps) {
                       className={`
                         h-2.5 rounded-full transition-all duration-300
                         ${isTaken 
-                          ? `w-[110%] shadow-sm z-20 ${getOwnerColorClass(lineVal)}`
+                          ? `w-[110%] shadow-md z-20 ${getOwnerColorClass(lineVal)} opacity-100`
                           : 'w-[90%] bg-slate-300/50 group-hover:bg-slate-400 group-hover:h-3'
                         }
                         ${!isTaken && isMyTurn ? `group-hover:${myColorClass}` : ''}
@@ -308,7 +308,7 @@ export function DotsBoxes({ match, makeMove }: DotsBoxesProps) {
                       className={`
                         w-2.5 rounded-full transition-all duration-300
                         ${isTaken 
-                          ? `h-[110%] shadow-sm z-20 ${getOwnerColorClass(lineVal)}`
+                          ? `h-[110%] shadow-md z-20 ${getOwnerColorClass(lineVal)} opacity-100`
                           : 'h-[90%] bg-slate-300/50 group-hover:bg-slate-400 group-hover:w-3'
                         }
                         ${!isTaken && isMyTurn ? `group-hover:${myColorClass}` : ''}
