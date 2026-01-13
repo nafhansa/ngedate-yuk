@@ -1,25 +1,38 @@
 export type PlayerSymbol = 'X' | 'O' | null;
 
 // Tic Tac Toe
-export const checkTicTacToeWinner = (board: (PlayerSymbol | string)[]): PlayerSymbol | 'draw' | null => {
-  const lines = [
-    [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
-    [0, 3, 6], [1, 4, 7], [2, 5, 8], // columns
-    [0, 4, 8], [2, 4, 6], // diagonals
-  ];
-
-  for (const [a, b, c] of lines) {
-    if (board[a] && board[a] === board[b] && board[a] === board[c]) {
-      return board[a] as PlayerSymbol;
+export function checkTicTacToeWinner(board: (string | null)[]) {
+  const size = 5; // Ukuran grid
+  
+  // Baris (Rows)
+  for (let i = 0; i < 25; i += 5) {
+    if (board[i] && board[i] === board[i+1] && board[i] === board[i+2] && board[i] === board[i+3] && board[i] === board[i+4]) {
+      return board[i];
     }
   }
 
-  if (board.every(cell => cell !== null)) {
-    return 'draw';
+  // Kolom (Columns)
+  for (let i = 0; i < 5; i++) {
+    if (board[i] && board[i] === board[i+5] && board[i] === board[i+10] && board[i] === board[i+15] && board[i] === board[i+20]) {
+      return board[i];
+    }
   }
 
+  // Diagonal Utama
+  if (board[0] && board[0] === board[6] && board[0] === board[12] && board[0] === board[18] && board[0] === board[24]) {
+    return board[0];
+  }
+
+  // Diagonal Terbalik
+  if (board[4] && board[4] === board[8] && board[4] === board[12] && board[4] === board[16] && board[4] === board[20]) {
+    return board[4];
+  }
+
+  // Cek Draw
+  if (!board.includes(null)) return 'draw';
+
   return null;
-};
+}
 
 // Connect 4
 export const checkConnect4Winner = (grid: (string | null)[][]): string | 'draw' | null => {

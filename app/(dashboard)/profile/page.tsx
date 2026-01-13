@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import Image from 'next/image';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/protected/ProtectedRoute';
 import { Navbar } from '@/components/layout/Navbar';
@@ -24,9 +23,16 @@ export default function ProfilePage() {
   const [historyLoading, setHistoryLoading] = useState(true);
   const [processingRequest, setProcessingRequest] = useState<Record<string, boolean>>({});
   const [loadingRequests, setLoadingRequests] = useState(true);
-  const [opponentData, setOpponentData] = useState<Record<string, any>>({});
 
-  const loadPartnerData = useCallback(async () => {
+  useEffect(() => {
+    if (userData?.partnerUid) {
+      loadPartnerData();
+    }
+    loadIncomingRequests();
+    loadMatchHistory();
+  }, [userData?.partnerUid, user?.uid]);
+
+  const loadPartnerData = async () => {
     if (!userData?.partnerUid) return;
     try {
       const data = await getUser(userData.partnerUid);
@@ -34,9 +40,9 @@ export default function ProfilePage() {
     } catch (error) {
       console.error('Error loading partner data:', error);
     }
-  }, [userData?.partnerUid]);
+  };
 
-  const loadIncomingRequests = useCallback(async () => {
+  const loadIncomingRequests = async () => {
     if (!user?.uid) return;
     try {
       setLoadingRequests(true);
@@ -57,49 +63,23 @@ export default function ProfilePage() {
     } finally {
       setLoadingRequests(false);
     }
-  }, [user?.uid]);
+  };
 
-  const loadMatchHistory = useCallback(async () => {
+  const loadMatchHistory = async () => {
     if (!user?.uid) return;
     try {
       const history = await getMatchHistory(user.uid);
-      const sortedHistory = history.sort((a, b) => {
+      setMatchHistory(history.sort((a, b) => {
         const aTime = a.lastMoveAt?.toMillis() || 0;
         const bTime = b.lastMoveAt?.toMillis() || 0;
         return bTime - aTime;
-      });
-      setMatchHistory(sortedHistory);
-
-      // Load opponent data for each match
-      const opponents: Record<string, any> = {};
-      for (const match of sortedHistory) {
-        const opponentUid = match.players.find(uid => uid !== user.uid);
-        if (opponentUid) {
-          try {
-            const opponent = await getUser(opponentUid);
-            if (opponent) {
-              opponents[match.matchId] = opponent;
-            }
-          } catch (error) {
-            console.error('Error loading opponent data:', error);
-          }
-        }
-      }
-      setOpponentData(opponents);
+      }));
     } catch (error) {
       console.error('Error loading match history:', error);
     } finally {
       setHistoryLoading(false);
     }
-  }, [user?.uid]);
-
-  useEffect(() => {
-    if (userData?.partnerUid) {
-      loadPartnerData();
-    }
-    loadIncomingRequests();
-    loadMatchHistory();
-  }, [userData?.partnerUid, user?.uid, loadPartnerData, loadIncomingRequests, loadMatchHistory]);
+  };
 
   const handleRequestPartner = async () => {
     if (!partnerEmail.trim()) {
@@ -212,11 +192,9 @@ export default function ProfilePage() {
               <h2 className="text-xl font-semibold text-slate-800 mb-4">Your Profile</h2>
               <div className="flex items-center space-x-4 mb-4">
                 {userData.photoURL ? (
-                  <Image
+                  <img
                     src={userData.photoURL}
                     alt={userData.displayName}
-                    width={64}
-                    height={64}
                     className="w-16 h-16 rounded-full"
                   />
                 ) : (
@@ -252,11 +230,9 @@ export default function ProfilePage() {
                 <div>
                   <div className="flex items-center space-x-4 mb-4">
                     {partnerData.photoURL ? (
-                      <Image
+                      <img
                         src={partnerData.photoURL}
                         alt={partnerData.displayName}
-                        width={64}
-                        height={64}
                         className="w-16 h-16 rounded-full"
                       />
                     ) : (
@@ -293,11 +269,9 @@ export default function ProfilePage() {
                         <div key={request.requestId} className="bg-blue-50 border-2 border-blue-200 p-4 rounded-lg">
                           <div className="flex items-center space-x-3 mb-4">
                             {senderData.photoURL ? (
-                              <Image
+                              <img
                                 src={senderData.photoURL}
                                 alt={senderData.displayName}
-                                width={48}
-                                height={48}
                                 className="w-12 h-12 rounded-full"
                               />
                             ) : (
@@ -408,26 +382,20 @@ export default function ProfilePage() {
                 {matchHistory.map((match) => {
                   const isWinner = match.winnerUid === user.uid;
                   const isDraw = match.winnerUid === null;
-                  const opponent = opponentData[match.matchId];
-                  const opponentName = opponent?.displayName || 'Unknown Player';
-                  
                   return (
                     <div
                       key={match.matchId}
                       className="flex items-center justify-between p-4 bg-slate-50 rounded-lg"
                     >
-                      <div className="flex items-center space-x-4 flex-1">
+                      <div className="flex items-center space-x-4">
                         <div className="w-10 h-10 bg-rose-100 rounded-lg flex items-center justify-center">
                           <Trophy className="w-5 h-5 text-rose-500" />
                         </div>
-                        <div className="flex-1">
+                        <div>
                           <p className="font-semibold text-slate-800">
                             {getGameDisplayName(match.gameType)}
                           </p>
                           <p className="text-sm text-slate-600">
-                            vs {opponentName}
-                          </p>
-                          <p className="text-xs text-slate-500 mt-1">
                             {formatDate(match.lastMoveAt)}
                           </p>
                         </div>
