@@ -16,7 +16,16 @@ export function TicTacToe({ match, makeMove }: TicTacToeProps) {
   if (!user || !match) return null;
 
   // --- SETUP DATA ---
-  const board = match.gameState?.board || Array(25).fill(null);
+  // Ambil board dari DB. Jika tidak ada, buat array kosong.
+  const rawBoard = match.gameState?.board || [];
+
+  // FIX: Pastikan length board SELALU 25.
+  // Jika data lama cuma 9 item (3x3), kita tambahkan sisa null agar grid 5x5 penuh.
+  const board = [
+    ...rawBoard, 
+    ...Array(Math.max(0, 25 - rawBoard.length)).fill(null)
+  ].slice(0, 25);
+
   const isMyTurn = match.turn === user.uid;
   const isPlayer1 = match.players[0] === user.uid;
   
