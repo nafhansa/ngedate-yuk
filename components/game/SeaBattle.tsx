@@ -105,7 +105,7 @@ export function SeaBattle({ match, makeMove }: SeaBattleProps) {
     }
 
     // Check if already shot
-    if (myShots.some(shot => shot.x === x && shot.y === y)) {
+    if (myShots.some((shot: { x: number; y: number; hit: boolean }) => shot.x === x && shot.y === y)) {
       toast.error('You already shot here!');
       return;
     }
@@ -119,10 +119,10 @@ export function SeaBattle({ match, makeMove }: SeaBattleProps) {
     const newShots = [...myShots, { x, y, hit }];
 
     // Check for winner
-    const allShipsHit = enemyBoard.every((row, rowY) =>
-      row.every((cell, colX) => {
+    const allShipsHit = enemyBoard.every((row: number[], rowY: number) =>
+      row.every((cell: number, colX: number) => {
         if (cell === 1) {
-          return newShots.some(shot => shot.x === colX && shot.y === rowY && shot.hit);
+          return newShots.some((shot: { x: number; y: number; hit: boolean }) => shot.x === colX && shot.y === rowY && shot.hit);
         }
         return true;
       })
@@ -148,7 +148,7 @@ export function SeaBattle({ match, makeMove }: SeaBattleProps) {
       if (hit) {
         toast.success('Hit!');
       } else {
-        toast.info('Miss!');
+        toast('Miss!');
       }
     } catch (error) {
       toast.error('Failed to make move');
@@ -156,7 +156,7 @@ export function SeaBattle({ match, makeMove }: SeaBattleProps) {
   };
 
   const getCellColor = (x: number, y: number, board: number[][] | null, shots: Array<{ x: number; y: number; hit: boolean }>) => {
-    const shot = shots.find(s => s.x === x && s.y === y);
+    const shot = shots.find((s: { x: number; y: number; hit: boolean }) => s.x === x && s.y === y);
     if (shot) {
       return shot.hit ? 'bg-red-500' : 'bg-blue-200';
     }
@@ -174,7 +174,7 @@ export function SeaBattle({ match, makeMove }: SeaBattleProps) {
             {iAmReady ? 'Waiting for opponent...' : 'Place your ships'}
           </h3>
           <p className="text-slate-600 mb-4">
-            Click Ready when you're done placing your ships (auto-generated for now)
+            Click Ready when you&apos;re done placing your ships (auto-generated for now)
           </p>
           <button
             onClick={handleReady}
@@ -197,7 +197,7 @@ export function SeaBattle({ match, makeMove }: SeaBattleProps) {
             <div className="grid grid-cols-10 gap-1">
               {Array.from({ length: GRID_SIZE }).map((_, row) =>
                 Array.from({ length: GRID_SIZE }).map((_, col) => {
-                  const shot = enemyShots.find(s => s.x === col && s.y === row);
+                  const shot = enemyShots.find((s: { x: number; y: number; hit: boolean }) => s.x === col && s.y === row);
                   return (
                     <div
                       key={`my-${row}-${col}`}
@@ -222,7 +222,7 @@ export function SeaBattle({ match, makeMove }: SeaBattleProps) {
             <div className="grid grid-cols-10 gap-1">
               {Array.from({ length: GRID_SIZE }).map((_, row) =>
                 Array.from({ length: GRID_SIZE }).map((_, col) => {
-                  const shot = myShots.find(s => s.x === col && s.y === row);
+                  const shot = myShots.find((s: { x: number; y: number; hit: boolean }) => s.x === col && s.y === row);
                   return (
                     <button
                       key={`enemy-${row}-${col}`}

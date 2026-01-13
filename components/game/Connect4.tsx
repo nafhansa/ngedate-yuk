@@ -51,7 +51,7 @@ export function Connect4({ match, makeMove }: Connect4Props) {
       return;
     }
 
-    const newGrid = grid.map(r => [...r]);
+    const newGrid = grid.map((r: (string | null)[]) => [...r]);
     newGrid[row][col] = myPlayerId;
 
     const winner = checkConnect4Winner(newGrid);

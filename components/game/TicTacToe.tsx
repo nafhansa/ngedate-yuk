@@ -75,7 +75,7 @@ export function TicTacToe({ match, makeMove }: TicTacToeProps) {
   return (
     <div className="max-w-md mx-auto">
       <div className="grid grid-cols-3 gap-2 aspect-square">
-        {board.map((cell, index) => (
+        {board.map((cell: string | null, index: number) => (
           <button
             key={index}
             onClick={() => handleCellClick(index)}

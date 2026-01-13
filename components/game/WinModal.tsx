@@ -54,7 +54,7 @@ export function WinModal({ isOpen, onClose, winner, winnerName }: WinModalProps)
             <div className="w-20 h-20 bg-slate-400 rounded-full flex items-center justify-center mx-auto mb-4">
               <Minus className="w-10 h-10 text-white" />
             </div>
-            <h2 className="text-3xl font-bold text-slate-800 mb-2">It's a Draw!</h2>
+            <h2 className="text-3xl font-bold text-slate-800 mb-2">It&apos;s a Draw!</h2>
             <p className="text-slate-600 mb-6">Great game, both players!</p>
           </>
         )}

@@ -23,6 +23,11 @@ if (typeof window !== 'undefined') {
   }
   auth = getAuth(app);
   db = getFirestore(app);
+} else {
+  // Server-side: create dummy instances
+  app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  db = getFirestore(app);
 }
 
 export { auth, db };

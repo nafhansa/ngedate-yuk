@@ -44,7 +44,7 @@ export function DotsBoxes({ match, makeMove }: DotsBoxesProps) {
       return;
     }
 
-    const newHLines = hLines.map(r => [...r]);
+    const newHLines = hLines.map((r: boolean[]) => [...r]);
     newHLines[row][col] = true;
 
     // Check for completed boxes
@@ -117,7 +117,7 @@ export function DotsBoxes({ match, makeMove }: DotsBoxesProps) {
       return;
     }
 
-    const newVLines = vLines.map(r => [...r]);
+    const newVLines = vLines.map((r: boolean[]) => [...r]);
     newVLines[row][col] = true;
 
     // Check for completed boxes

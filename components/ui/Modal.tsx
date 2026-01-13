@@ -38,7 +38,7 @@ export function Modal({ isOpen, onClose, title, children, className }: ModalProp
         )}
         onClick={(e) => e.stopPropagation()}
       >
-        {(title || onClose) && (
+        {title && (
           <div className="flex items-center justify-between p-6 border-b">
             {title && (
               <h2 className="text-xl font-semibold text-slate-800">{title}</h2>
