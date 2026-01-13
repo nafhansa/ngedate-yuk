@@ -333,23 +333,31 @@ export const removePartner = async (currentUid: string): Promise<void> => {
 
     const partnerUid = currentUser.partnerUid;
 
+    // Verify partner relationship is mutual
+    const partnerUser = await getUser(partnerUid);
+    if (!partnerUser) {
+      throw new Error('Partner not found');
+    }
+
+    if (partnerUser.partnerUid !== currentUid) {
+      throw new Error('Partner relationship is not mutual');
+    }
+
+    // Use batch write for atomic operation
+    const batch = writeBatch(getDb());
+    
     // Update current user - remove partner (own document, allowed)
-    await updateDoc(doc(getDb(), 'users', currentUid), {
+    batch.update(doc(getDb(), 'users', currentUid), {
       partnerUid: null,
     });
 
     // Update partner user - remove partner (other user's document, needs special rule)
-    try {
-      await updateDoc(doc(getDb(), 'users', partnerUid), {
-        partnerUid: null,
-      });
-    } catch (error: any) {
-      // If update fails, rollback current user's partnerUid
-      await updateDoc(doc(getDb(), 'users', currentUid), {
-        partnerUid: partnerUid,
-      });
-      throw new Error(`Failed to remove partner: ${error.message}`);
-    }
+    batch.update(doc(getDb(), 'users', partnerUid), {
+      partnerUid: null,
+    });
+
+    // Commit both updates atomically
+    await batch.commit();
   } catch (error) {
     console.error('Error removing partner:', error);
     throw error;

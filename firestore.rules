@@ -14,9 +14,13 @@ service cloud.firestore {
       allow update: if request.auth != null && 
         request.auth.uid != userId &&
         request.resource.data.partnerUid == request.auth.uid &&
-        resource.data.partnerUid == null;
+        resource.data.partnerUid == null &&
+        // Ensure other important fields remain unchanged
+        request.resource.data.uid == resource.data.uid &&
+        request.resource.data.email == resource.data.email;
       
       // Allow removing partner (setting partnerUid to null) if current user is the partner
+      // This allows user A to remove themselves from user B's partnerUid field
       allow update: if request.auth != null && 
         request.auth.uid != userId &&
         request.resource.data.partnerUid == null &&
