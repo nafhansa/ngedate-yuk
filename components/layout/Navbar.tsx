@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import { signOut } from '@/services/auth';
-import { LogOut, User, Home } from 'lucide-react';
+import { LogOut, User, Home, Coins } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
 export function Navbar() {
@@ -37,6 +37,17 @@ export function Navbar() {
           </div>
 
           <div className="flex items-center space-x-4">
+            {/* Credit Display */}
+            <div 
+              className="flex items-center space-x-2 px-3 py-1.5 bg-rose-50 rounded-lg cursor-pointer hover:bg-rose-100 transition-colors"
+              onClick={() => router.push('/credits')}
+            >
+              <Coins className="w-4 h-4 text-rose-600" />
+              <span className="text-rose-700 font-semibold text-sm">
+                {userData?.isAdmin ? '∞' : (userData?.credits || 0)}
+              </span>
+            </div>
+            
             {userData?.photoURL ? (
               <Image
                 src={userData.photoURL}
