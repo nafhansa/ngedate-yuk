@@ -7,8 +7,8 @@ import { AuthProvider } from "@/contexts/AuthContext";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Ngedate Yuk - LDR Gaming Platform",
-  description: "Play turn-based games with your partner in real-time",
+  title: "Ngedate Yuk - Mainkan Game Bersama Pasangan Jarak Jauh",
+  description: "Platform gaming untuk pasangan jarak jauh. Mainkan game turn-based secara real-time bersama pasangan Anda. Tic Tac Toe, Connect 4, Dots & Boxes, dan Sea Battle.",
 };
 
 export default function RootLayout({
@@ -17,7 +17,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="id">
       <body className={inter.className}>
         <AuthProvider>
           {children}

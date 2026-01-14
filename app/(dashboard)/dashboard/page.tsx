@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/protected/ProtectedRoute';
 import { Navbar } from '@/components/layout/Navbar';
+import { Footer } from '@/components/layout/Footer';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -12,6 +13,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Grid3x3, Layers, Anchor, Boxes, Copy, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { createRoomWithCode, joinRoomByCode } from '@/services/db';
+import { checkSufficientCredits } from '@/services/credits';
 
 export const dynamic = 'force-dynamic';
 
@@ -61,6 +63,20 @@ export default function DashboardPage() {
   const handleCreateRoom = async (gameType: string) => {
     if (!user) {
       toast.error('Please sign in to play');
+      return;
+    }
+
+    // Check if user has enough credits
+    try {
+      const hasCredits = await checkSufficientCredits(user.uid, 1);
+      if (!hasCredits) {
+        toast.error('Credit tidak cukup. Silakan beli credit terlebih dahulu.');
+        router.push('/credits');
+        return;
+      }
+    } catch (error) {
+      console.error('Error checking credits:', error);
+      toast.error('Gagal memeriksa credit');
       return;
     }
 
@@ -248,6 +264,7 @@ export default function DashboardPage() {
           </div>
         </Modal>
       </div>
+      <Footer />
     </ProtectedRoute>
   );
 }

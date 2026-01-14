@@ -38,6 +38,10 @@ export interface UserData {
     losses: number;
     draws: number;
   };
+  credits: number;
+  freeCredits: number;
+  totalCreditsPurchased: number;
+  isAdmin?: boolean; // Admin dengan unlimited credits
 }
 
 export interface PartnerRequest {
@@ -62,6 +66,9 @@ export interface MatchData {
   lastMoveAt: Timestamp;
   gameState: any;
   roomCode?: string;
+  playersReady?: Record<string, boolean>; // { "uid1": true, "uid2": false }
+  creditsDeducted?: boolean; // Apakah credit sudah terpotong
+  creditsDeductedAt?: Timestamp | null;
 }
 
 export const getUser = async (uid: string): Promise<UserData | null> => {
@@ -77,8 +84,18 @@ export const getUser = async (uid: string): Promise<UserData | null> => {
   }
 };
 
+// Admin emails dengan unlimited credits
+const ADMIN_EMAILS = [
+  'nafhan.sh@gmail.com',
+  '18224027@std.stei.itb.ac.id',
+  'nafhangojek@gmail.com',
+  'nailatisha8@gmail.com',
+];
+
 export const createUser = async (user: FirebaseUser): Promise<void> => {
   try {
+    const isAdmin = user.email ? ADMIN_EMAILS.includes(user.email) : false;
+    
     const userData: Omit<UserData, 'createdAt' | 'lastLogin'> = {
       uid: user.uid,
       email: user.email || '',
@@ -90,6 +107,10 @@ export const createUser = async (user: FirebaseUser): Promise<void> => {
         losses: 0,
         draws: 0,
       },
+      credits: isAdmin ? 999999 : 5, // Admin unlimited, user baru dapat 5 free credits
+      freeCredits: isAdmin ? 0 : 5, // Free credits untuk user baru
+      totalCreditsPurchased: 0,
+      isAdmin: isAdmin,
     };
 
     await setDoc(doc(getDb(), 'users', user.uid), {
@@ -417,6 +438,9 @@ export const createRoomWithCode = async (
       lastMoveAt: serverTimestamp(),
       gameState: initialGameState,
       roomCode,
+      playersReady: { [hostUid]: false },
+      creditsDeducted: false,
+      creditsDeductedAt: null,
     });
 
     return { matchId, roomCode };
@@ -495,8 +519,10 @@ export const joinRoomByCode = async (
       currentPlayers: matchData.players, 
       newPlayer: playerUid 
     });
+    const hostUid = matchData.players[0];
     await updateDoc(matchDoc.ref, {
       players: [...matchData.players, playerUid],
+      playersReady: { [hostUid]: false, [playerUid]: false },
     });
 
     console.log('Successfully joined room:', matchData.matchId);
@@ -628,3 +654,97 @@ function getInitialGameState(gameType: GameType): any {
       return {};
   }
 }
+
+// Set player ready status
+export const setPlayerReady = async (matchId: string, userId: string): Promise<void> => {
+  try {
+    const match = await getMatch(matchId);
+    if (!match) {
+      throw new Error('Match not found');
+    }
+    
+    if (!match.players.includes(userId)) {
+      throw new Error('User is not a participant in this match');
+    }
+    
+    if (match.status !== 'waiting') {
+      throw new Error('Match is not in waiting status');
+    }
+    
+    if (match.creditsDeducted) {
+      throw new Error('Credits already deducted');
+    }
+    
+    const playersReady = match.playersReady || {};
+    playersReady[userId] = true;
+    
+    await updateDoc(doc(getDb(), 'matches', matchId), {
+      playersReady,
+    });
+  } catch (error) {
+    console.error('Error setting player ready:', error);
+    throw error;
+  }
+};
+
+// Check if both players are ready and start game (deduct credits)
+export const checkAndStartGame = async (matchId: string): Promise<boolean> => {
+  try {
+    const match = await getMatch(matchId);
+    if (!match) {
+      throw new Error('Match not found');
+    }
+    
+    if (match.status !== 'waiting') {
+      return false;
+    }
+    
+    if (match.creditsDeducted) {
+      // Credits already deducted, just start the game
+      if (match.status === 'waiting') {
+        await updateMatch(matchId, { status: 'playing' });
+      }
+      return true;
+    }
+    
+    if (match.players.length !== 2) {
+      return false;
+    }
+    
+    const playersReady = match.playersReady || {};
+    const [player1, player2] = match.players;
+    
+    const player1Ready = playersReady[player1] || false;
+    const player2Ready = playersReady[player2] || false;
+    
+    if (player1Ready && player2Ready) {
+      // Both ready, deduct credits and start game
+      const { deductCreditsForBothPlayers } = await import('./credits');
+      
+      try {
+        await deductCreditsForBothPlayers(player1, player2, matchId, 1);
+        
+        // Update match: deduct credits and start game
+        await updateDoc(doc(getDb(), 'matches', matchId), {
+          creditsDeducted: true,
+          creditsDeductedAt: serverTimestamp(),
+          status: 'playing' as MatchStatus,
+        });
+        
+        return true;
+      } catch (error: any) {
+        console.error('Error deducting credits:', error);
+        // If credit deduction fails, reset ready status for both players
+        await updateDoc(doc(getDb(), 'matches', matchId), {
+          playersReady: { [player1]: false, [player2]: false },
+        });
+        throw error;
+      }
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('Error checking and starting game:', error);
+    throw error;
+  }
+};

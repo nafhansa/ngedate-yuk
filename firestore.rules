@@ -69,5 +69,13 @@ service cloud.firestore {
       allow delete: if request.auth != null && 
         request.auth.uid in resource.data.players;
     }
+
+    // CREDIT TRANSACTIONS: Users can only read their own transactions
+    match /creditTransactions/{transactionId} {
+      allow read: if request.auth != null && 
+        request.auth.uid == resource.data.userId;
+      // Create is handled server-side via API/webhook
+      allow create, update, delete: if false;
+    }
   }
 }

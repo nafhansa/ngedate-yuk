@@ -1,28 +1,27 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
+import { LandingNavbar } from '@/components/landing/LandingNavbar';
+import { Hero } from '@/components/landing/Hero';
+import { Features } from '@/components/landing/Features';
+import { GamesShowcase } from '@/components/landing/GamesShowcase';
+import { HowItWorks } from '@/components/landing/HowItWorks';
+import { CTA } from '@/components/landing/CTA';
+import { Footer } from '@/components/layout/Footer';
 
 export const dynamic = 'force-dynamic';
 
 export default function Home() {
-  const { user, loading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!loading) {
-      if (user) {
-        router.push('/dashboard');
-      } else {
-        router.push('/login');
-      }
-    }
-  }, [user, loading, router]);
-
   return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-500"></div>
+    <div className="min-h-screen">
+      <LandingNavbar />
+      <main>
+        <Hero />
+        <Features />
+        <GamesShowcase />
+        <HowItWorks />
+        <CTA />
+      </main>
+      <Footer />
     </div>
   );
 }

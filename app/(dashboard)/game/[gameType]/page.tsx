@@ -11,10 +11,10 @@ import { TicTacToe } from '@/components/game/TicTacToe';
 import { Connect4 } from '@/components/game/Connect4';
 import { DotsBoxes } from '@/components/game/DotsBoxes';
 import { SeaBattle } from '@/components/game/SeaBattle';
+import { ReadyButton } from '@/components/game/ReadyButton';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
 import { ArrowLeft } from 'lucide-react';
-import { updateMatch } from '@/services/db';
 
 export default function GameRoomPage({ params }: { params: { gameType: string } }) {
   const searchParams = useSearchParams();
@@ -49,14 +49,12 @@ export default function GameRoomPage({ params }: { params: { gameType: string } 
     }
   }, [match, user, showWinModal]);
 
-  useEffect(() => {
-    // Start the game if both players are present
-    if (match && match.status === 'waiting' && match.players.length === 2) {
-      updateMatch(match.matchId, { status: 'playing' }).catch(err => {
-        console.error('Error starting game:', err);
-      });
+  const handleGameStart = () => {
+    // Game started, refresh match data
+    if (matchId) {
+      window.location.reload();
     }
-  }, [match]);
+  };
 
   const renderGame = () => {
     if (!match || !user) return null;
@@ -120,9 +118,15 @@ export default function GameRoomPage({ params }: { params: { gameType: string } 
           ) : (
             <div>
               <ScoreBoard match={match} />
-              <div className="bg-white rounded-xl shadow-md p-6">
-                {renderGame()}
-              </div>
+              {match.status === 'waiting' ? (
+                <div className="bg-white rounded-xl shadow-md p-6 mb-6">
+                  <ReadyButton match={match} onGameStart={handleGameStart} />
+                </div>
+              ) : (
+                <div className="bg-white rounded-xl shadow-md p-6">
+                  {renderGame()}
+                </div>
+              )}
             </div>
           )}
 
