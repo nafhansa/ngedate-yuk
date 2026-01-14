@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/protected/ProtectedRoute';
 import { Navbar } from '@/components/layout/Navbar';
+import { Footer } from '@/components/layout/Footer';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -640,6 +641,7 @@ export default function ProfilePage() {
           </div>
         </div>
       </Modal>
+      <Footer />
     </ProtectedRoute>
   );
 }

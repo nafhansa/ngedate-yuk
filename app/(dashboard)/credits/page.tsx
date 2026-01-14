@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/protected/ProtectedRoute';
 import { Navbar } from '@/components/layout/Navbar';
+import { Footer } from '@/components/layout/Footer';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { CREDIT_PACKAGES, formatRupiah } from '@/services/payment';
@@ -214,6 +215,7 @@ export default function CreditsPage() {
           </div>
         </div>
       </div>
+      <Footer />
     </ProtectedRoute>
   );
 }

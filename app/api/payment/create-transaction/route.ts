@@ -16,17 +16,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get request body
-    const body = await request.json();
-    const { packageId } = body;
-
-    if (!packageId) {
-      return NextResponse.json(
-        { error: 'Package ID is required' },
-        { status: 400 }
-      );
-    }
-
     // Find package
     const packageData = CREDIT_PACKAGES.find(p => p.id === packageId);
     if (!packageData) {

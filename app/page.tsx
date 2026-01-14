@@ -6,6 +6,7 @@ import { Features } from '@/components/landing/Features';
 import { GamesShowcase } from '@/components/landing/GamesShowcase';
 import { HowItWorks } from '@/components/landing/HowItWorks';
 import { CTA } from '@/components/landing/CTA';
+import { Footer } from '@/components/layout/Footer';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,6 +21,7 @@ export default function Home() {
         <HowItWorks />
         <CTA />
       </main>
+      <Footer />
     </div>
   );
 }
