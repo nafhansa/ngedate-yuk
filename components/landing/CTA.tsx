@@ -34,10 +34,10 @@ export function CTA() {
         </p>
 
         <Button
-          variant="secondary"
+          variant="outline"
           size="lg"
           onClick={handleCTA}
-          className="min-w-[200px] bg-white text-rose-500 hover:bg-slate-50"
+          className="min-w-[200px] bg-white text-rose-500 border-rose-500 hover:bg-rose-500 hover:text-white"
         >
           {user ? 'Lanjutkan ke Dashboard' : 'Mulai Sekarang'}
         </Button>

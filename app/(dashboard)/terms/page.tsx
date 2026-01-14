@@ -1,7 +1,7 @@
 'use client';
 
-import { Navbar } from '@/components/layout/Navbar';
-import { ProtectedRoute } from '@/components/protected/ProtectedRoute';
+import { LandingNavbar } from '@/components/landing/LandingNavbar';
+import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/Button';
 import { ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -10,9 +10,9 @@ export default function TermsPage() {
   const router = useRouter();
 
   return (
-    <ProtectedRoute>
+    <div className="min-h-screen">
+      <LandingNavbar />
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-rose-50">
-        <Navbar />
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-6">
             <Button
@@ -191,6 +191,7 @@ export default function TermsPage() {
           </div>
         </div>
       </div>
-    </ProtectedRoute>
+      <Footer />
+    </div>
   );
 }
