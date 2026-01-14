@@ -89,7 +89,6 @@ const ADMIN_EMAILS = [
   'nafhan.sh@gmail.com',
   '18224027@std.stei.itb.ac.id',
   'nafhangojek@gmail.com',
-  'nafhan1723@gmail.com',
   'nailatisha8@gmail.com',
 ];
 
