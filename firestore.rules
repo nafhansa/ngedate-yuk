@@ -9,6 +9,16 @@ service cloud.firestore {
       // Allow full write to own document
       allow update, create: if request.auth != null && request.auth.uid == userId;
       
+      // Allow updating credits/freeCredits by anyone (for deducting credits for both players)
+      // Only allow if credits and freeCredits are being reduced (not increased)
+      allow update: if request.auth != null && 
+        request.resource.data.credits <= resource.data.credits &&
+        request.resource.data.freeCredits <= resource.data.freeCredits &&
+        // Ensure other important fields remain unchanged
+        request.resource.data.uid == resource.data.uid &&
+        request.resource.data.email == resource.data.email &&
+        request.resource.data.displayName == resource.data.displayName;
+      
       // Allow update partnerUid in other user's document for mutual connection
       // Only allow if: setting partnerUid to current user AND target user has no partner yet
       allow update: if request.auth != null && 
@@ -74,8 +84,11 @@ service cloud.firestore {
     match /creditTransactions/{transactionId} {
       allow read: if request.auth != null && 
         request.auth.uid == resource.data.userId;
-      // Create is handled server-side via API/webhook
-      allow create, update, delete: if false;
+      // Allow users to create their own credit transaction records
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.userId;
+      // Update and delete still blocked - transactions should be immutable
+      allow update, delete: if false;
     }
   }
 }

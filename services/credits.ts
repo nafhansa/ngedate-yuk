@@ -78,14 +78,7 @@ export const deductCredits = async (uid: string, matchId: string, amount: number
     
     // Admin tidak perlu deduct credits
     if (user.isAdmin) {
-      // Create transaction record untuk tracking saja
-      await createCreditTransaction({
-        userId: uid,
-        type: 'deduct',
-        amount: -amount,
-        matchId,
-        description: 'Admin - No deduction',
-      });
+      // Admin has unlimited credits, no deduction needed
       return;
     }
     
@@ -297,23 +290,36 @@ export const deductCreditsForBothPlayers = async (
     // Commit batch
     await batch.commit();
     
-    // Create transaction records
-    await Promise.all([
-      createCreditTransaction({
-        userId: player1Uid,
-        type: 'deduct',
-        amount: -amount,
-        matchId,
-        description: `Deducted ${amount} credit(s) for game`,
-      }),
-      createCreditTransaction({
-        userId: player2Uid,
-        type: 'deduct',
-        amount: -amount,
-        matchId,
-        description: `Deducted ${amount} credit(s) for game`,
-      }),
-    ]);
+    // Create transaction records (only for non-admin players)
+    const transactionPromises = [];
+    
+    if (!user1.isAdmin) {
+      transactionPromises.push(
+        createCreditTransaction({
+          userId: player1Uid,
+          type: 'deduct',
+          amount: -amount,
+          matchId,
+          description: `Deducted ${amount} credit(s) for game`,
+        })
+      );
+    }
+    
+    if (!user2.isAdmin) {
+      transactionPromises.push(
+        createCreditTransaction({
+          userId: player2Uid,
+          type: 'deduct',
+          amount: -amount,
+          matchId,
+          description: `Deducted ${amount} credit(s) for game`,
+        })
+      );
+    }
+    
+    if (transactionPromises.length > 0) {
+      await Promise.all(transactionPromises);
+    }
   } catch (error) {
     console.error('Error deducting credits for both players:', error);
     throw error;
